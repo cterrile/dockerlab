@@ -17,8 +17,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${COMPOSE_BASE}/traefik-data/traefik.yml:/traefik.yml:ro
-      - ${COMPOSE_BASE}/traefik-data/acme.json:/acme.json
+      - ${COMPOSE_BASE}/traefik-data/traefik.yml:/etc/traefik/traefik.yml:ro
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.entrypoints=http"
@@ -44,7 +43,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./portainer-data:/data
+      - portainer_data:/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.portainer.entrypoints=http"
@@ -62,3 +61,6 @@ services:
 networks:
   traefik-proxy:
     external: true
+
+volumes:
+  portainer_data:
