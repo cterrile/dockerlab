@@ -1,3 +1,6 @@
+api:
+  dashboard: true
+  
 entryPoints:
   http:
     address: ":80"
@@ -9,8 +12,6 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
 
-api:
-  dashboard: true
 certificatesResolvers:
   dns:
     acme:
