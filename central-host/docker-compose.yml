@@ -18,7 +18,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik-data/:/etc/traefik/:ro
-      
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.entrypoints=http"
@@ -34,7 +34,7 @@ services:
       - "traefik.http.routers.traefik-secure.service=api@internal"
 
   portainer:
-    image: portainer/portainer:latest
+    image: portainer/portainer-ee:latest
     container_name: portainer
     restart: unless-stopped
     security_opt:
