@@ -11,7 +11,6 @@ services:
       - /dev/dri:/dev/dri
     environment:
       - TZ=America/Los_Angeles
-#      - PLEX_CLAIM=claim-gDucbHvo7gKnoXbPS3iW
       - HOSTNAME=${MEDIA_SERVER_NAME}
       - ADVERTISE_IP="http://${MEDIA_SERVER_IP}:32400"
       - ALLOWED_NETWORKS="192.168.1.0/24"
