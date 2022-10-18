@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+
+  plex:
+    image: plexinc/pms-docker
+    container_name: plex
+    restart: always
+    network_mode: host
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - TZ=America/Los_Angeles
+#      - PLEX_CLAIM=claim-gDucbHvo7gKnoXbPS3iW
+      - HOSTNAME=${MEDIA_SERVER_NAME}
+      - ADVERTISE_IP="http://${MEDIA_SERVER_IP}:32400"
+      - ALLOWED_NETWORKS="192.168.1.0/24"
+    volumes:
+      - ${PLEX_CONFIG_DIR}:/config
+      - ${PLEX_MEDIA_DIR}:/media/NAS
