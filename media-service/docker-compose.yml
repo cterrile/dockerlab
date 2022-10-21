@@ -17,3 +17,21 @@ services:
     volumes:
       - ${PLEX_CONFIG_DIR}:/config
       - ${PLEX_MEDIA_DIR}:/media/NAS
+
+  tautulli:
+    container_name: tautulli
+    image: linuxserver/tautulli
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - tautulli_config:/config
+    ports:
+      - 8181:8181
+    restart: unless-stopped
+
+volumes:
+  tautulli_config:
+    external:
+      name: tautulli_config
