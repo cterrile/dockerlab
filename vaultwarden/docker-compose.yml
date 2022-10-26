@@ -16,7 +16,7 @@ services:
       - "traefik.docker.network=proxy"
       # Entry Point for https
       - "traefik.http.routers.bitwarden-secure.entrypoints=https"
-      - "traefik.http.routers.bitwarden-secure.rule=Host(`bitwarden.${DOMAIN})"
+      - "traefik.http.routers.bitwarden-secure.rule=Host(`bitwarden.${DOMAIN}`)"
       - "traefik.http.routers.bitwarden-secure.service=bitwarden-service"
       - "traefik.http.routers.bitwarden-secure.tls=true"
       - "traefik.http.routers.bitwarden-secure.tls.certresolver=dns"
@@ -24,7 +24,6 @@ services:
       # websocket
       - "traefik.http.routers.bitwarden-ws.entrypoints=https"
       - "traefik.http.routers.bitwarden-ws.rule=Host(`bitwarden.${DOMAIN}`) && Path(`/notifications/hub`)"
-      - "traefik.http.middlewares.bitwarden-ws=bw-stripPrefix@file"
       - "traefik.http.routers.bitwarden-ws.service=bitwarden-websocket"
       - "traefik.http.services.bitwarden-websocket.loadbalancer.server.port=3012"
 
