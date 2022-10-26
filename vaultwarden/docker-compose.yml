@@ -8,7 +8,7 @@ services:
       - default
       - traefik_proxy
     volumes:
-      - /srv/docker/bitwarden:/data
+      - vaultwarden_data:/data
     environment:
       WEBSOCKET_ENABLED: 'true' # Required to use websockets
       SIGNUPS_ALLOWED: 'false'   # set to false to disable signups
@@ -29,4 +29,8 @@ services:
 
 networks:
   traefik_proxy:
+    external: true
+
+volumes:
+  vaultwarden_data:
     external: true
