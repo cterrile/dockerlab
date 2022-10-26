@@ -15,6 +15,8 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-proxy"
       # Entry Point for https
+      - "traefik.http.middlewares.bitwarden-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.bitwarden.middlewares=bitwarden-https-redirect"
       - "traefik.http.routers.bitwarden-secure.entrypoints=https"
       - "traefik.http.routers.bitwarden-secure.rule=Host(`bitwarden.${DOMAIN}`)"
       - "traefik.http.routers.bitwarden-secure.service=bitwarden-service"
