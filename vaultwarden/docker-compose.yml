@@ -5,8 +5,7 @@ services:
     container_name: bitwarden
     restart: always
     networks:
-      - default
-      - traefik_proxy
+      - traefik-proxy
     volumes:
       - vaultwarden_data:/data
     environment:
@@ -28,7 +27,7 @@ services:
       - "traefik.http.services.bitwarden-websocket.loadbalancer.server.port=3012"
 
 networks:
-  traefik_proxy:
+  traefik-proxy:
     external: true
 
 volumes:
