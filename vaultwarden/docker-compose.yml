@@ -13,7 +13,7 @@ services:
       SIGNUPS_ALLOWED: 'false'   # set to false to disable signups
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik-proxy"
+      #- "traefik.docker.network=traefik-proxy"
       # Entry Point for https
       - "traefik.http.middlewares.bitwarden-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.bitwarden.middlewares=bitwarden-https-redirect"
