@@ -19,7 +19,7 @@ services:
       - "traefik.http.routers.bitwarden.middlewares=bitwarden-https-redirect"
       - "traefik.http.routers.bitwarden-secure.entrypoints=https"
       - "traefik.http.routers.bitwarden-secure.rule=Host(`bitwarden.${DOMAIN}`)"
-      - "traefik.http.routers.bitwarden-secure.service=bitwarden"
+      - "traefik.http.routers.bitwarden-secure.service=bitwarden-service"
       - "traefik.http.routers.bitwarden-secure.tls=true"
       - "traefik.http.routers.bitwarden-secure.tls.certresolver=dns"
       - "traefik.http.services.bitwarden-service.loadbalancer.server.port=80"
