@@ -29,7 +29,6 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik-proxy"
       # Entry Point for https
       - "traefik.http.middlewares.mealie-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.mealie.middlewares=mealie-https-redirect"
@@ -39,6 +38,7 @@ services:
       - "traefik.http.routers.mealie-secure.tls=true"
       - "traefik.http.routers.mealie-secure.tls.certresolver=dns"
       - "traefik.http.services.mealie-service.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-proxy"
 
 volumes:
   mealie_data:
