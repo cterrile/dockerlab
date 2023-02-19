@@ -10,5 +10,5 @@ services:
       - MQTT_PASSWORD=${MQTT_PASSWORD}
       - METER_ID=${METER_ID}
     volumes:
-      - ./config/rtlamr2mqtt.yaml:/etc/rtlamr2mqtt.yaml
+      - ${PWD}/config/rtlamr2mqtt.yaml:/etc/rtlamr2mqtt.yaml
       - /opt/rtlamr2mqtt/data:/var/lib/rtlamr2mqtt
