@@ -1,0 +1,11 @@
+version: "3"
+services:
+  rtlamr:
+    container_name: rtlamr2mqtt
+    image: allangood/rtlamr2mqtt
+    restart: unless-stopped
+    devices:
+      - /dev/bus/usb
+    volumes:
+      - ./rtlamr2mqtt.yaml:/etc/rtlamr2mqtt.yaml:ro
+      # - /opt/rtlamr2mqtt/data:/var/lib/rtlamr2mqtt
