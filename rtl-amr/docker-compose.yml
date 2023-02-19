@@ -11,4 +11,4 @@ services:
       - METER_ID=${METER_ID}
     volumes:
       - ./config/rtlamr2mqtt.yaml:/etc/rtlamr2mqtt.yaml:ro
-      # - /opt/rtlamr2mqtt/data:/var/lib/rtlamr2mqtt
+      - /opt/rtlamr2mqtt/data:/var/lib/rtlamr2mqtt
