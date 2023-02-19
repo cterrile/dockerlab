@@ -6,6 +6,9 @@ services:
     restart: unless-stopped
     devices:
       - /dev/bus/usb
+    environment:
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - METER_ID=${METER_ID}
     volumes:
       - ./rtlamr2mqtt.yaml:/etc/rtlamr2mqtt.yaml:ro
       # - /opt/rtlamr2mqtt/data:/var/lib/rtlamr2mqtt
