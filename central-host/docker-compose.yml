@@ -115,7 +115,7 @@ services:
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     ports:
-      - 51825:51825/udp
+      - 51825:51820/udp
     restart: unless-stopped
 
 networks:
