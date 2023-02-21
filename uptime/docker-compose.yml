@@ -1,28 +1,29 @@
 version: '3'
 
 services:
-  wireguard:
-    image: linuxserver/wireguard:latest
-    container_name: wireguard
-    volumes:
-      - /home/chris/wg_client:/config
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
+ # wireguard:
+ #   image: linuxserver/wireguard:latest
+ #   container_name: wireguard
+ #   volumes:
+ #     - /home/chris/wg_client:/config
+ ##   restart: unless-stopped
+ #   environment:
+ #     - PUID=1000
+ #     - PGID=1000
+ #   cap_add:
+ #     - NET_ADMIN
+ #     - SYS_MODULE
+ ##   sysctls:
+ #     - net.ipv4.conf.all.src_valid_mark=1
+ 
 
   uptime:
     image: louislam/uptime-kuma:latest
     container_name: uptime-kuma
     volumes:
       - uptime-kuma:/app/data
-    network_mode: "service:wireguard"
-    depends_on: [ "wireguard", ]
+    ports:
+      - 3001:3000
     restart: always
 
 volumes:
