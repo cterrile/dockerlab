@@ -88,6 +88,32 @@ services:
       - "traefik.http.routers.consul-secure.service=consul"
       - "traefik.http.services.consul.loadbalancer.server.port=8500"
       - "traefik.docker.network=traefik-proxy"
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard-server
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - SERVERURL=services.${DOMAIN} #optional
+      - SERVERPORT=51825 #optional
+      - PEERS=${PEERS_LIST} #optional
+      - PEERDNS=auto #optional
+      - INTERNAL_SUBNET=10.13.14.0 #optional
+      - ALLOWEDIPS=10.13.14.0/0 #optional
+      - PERSISTENTKEEPALIVE_PEERS=all #optional
+      - LOG_CONFS=true #optional
+    volumes:
+      - ${WG_CONFIG_DIR}:/config
+      # - /lib/modules:/lib/modules optional
+    ports:
+      - 51825:51825/udp
+    restart: unless-stopped
+
 networks:
   traefik-proxy:
     external: true
