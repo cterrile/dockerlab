@@ -17,8 +17,9 @@ services:
     volumes:
       - ${PLEX_CONFIG_DIR}:/config
       - ${PLEX_MEDIA_DIR}:/media/NAS
-      - ${PLEX_MEDIA_DIR_2}:/media/local
       - plex_library:/media/truenas
+      - ${PLEX_MEDIA_DIR_2}:/media/local
+      
 
   tautulli:
     container_name: tautulli
