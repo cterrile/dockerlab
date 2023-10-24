@@ -18,6 +18,7 @@ services:
       - ${PLEX_CONFIG_DIR}:/config
       - ${PLEX_MEDIA_DIR}:/media/NAS
       - ${PLEX_MEDIA_DIR_2}:/media/local
+      - plex_library:/media/truenas
 
   tautulli:
     container_name: tautulli
@@ -36,3 +37,9 @@ volumes:
   tautulli_config:
     external:
       name: tautulli_config
+
+  plex_library:
+    driver_opts:
+      type: "nfs"
+      o: "username=plex,password=${NAS_PASSWORD},addr=${NAS_IP},nolock,soft,rw"
+      device: ":/media"
