@@ -39,7 +39,6 @@ volumes:
       name: tautulli_config
 
   plex_library:
-    driver: local
     driver_opts:
       type: cifs
       o: username=plex,password=${NAS_PASSWORD},uid=3001,gid=3001,vers=3.0
