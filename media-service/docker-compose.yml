@@ -34,6 +34,7 @@ services:
     restart: unless-stopped
 
 volumes:
+
   tautulli_config:
     name: tautulli_config
     external: true
