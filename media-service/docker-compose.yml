@@ -42,5 +42,5 @@ volumes:
     driver: local
     driver_opts:
       type: cifs
-      o: username=plex,password=${NAS_PASSWORD}
-      device: ${NAS_IP}:/media
+      o: username=plex,password=${NAS_PASSWORD},uid=3001,gid=3001,vers=3.0
+      device: //${NAS_IP}:/media
