@@ -39,7 +39,8 @@ volumes:
       name: tautulli_config
 
   plex_library:
+    driver: local
     driver_opts:
-      type: "nfs"
-      o: "username=plex,password=${NAS_PASSWORD},addr=${NAS_IP},nolock,soft,rw"
-      device: ":/media"
+      type: cifs
+      o: username=plex,password=${NAS_PASSWORD}
+      device: ${NAS_IP}:/media
