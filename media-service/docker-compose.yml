@@ -41,5 +41,5 @@ volumes:
     external: true
 
   plex_library:
-#    name: plex_library
-#    external: true
+    name: plex_library
+    external: true
