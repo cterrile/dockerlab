@@ -99,7 +99,7 @@ services:
       - PEERS=artemis
       # Services to expose format (comma-separated)
       # SERVICES=peer-id:peer-container-name:peer-container-port:expose-port-as
-      - SERVICES=peer1:nginx:80:8080,peer1:nginx-demo:80:8081
+      - SERVICES=peer1:radarr:7878:7878,peer1:sonarr:8989:8989
     cap_add:
       - NET_ADMIN
     volumes:
@@ -111,17 +111,17 @@ services:
       - "traefik-proxy"
     labels:
       traefik.enable: true
-      traefik.http.routers.nginx.entrypoints: web,websecure
-      traefik.http.routers.nginx.rule: Host(`nginx.${DOMAIN}`) # Update to your domain
-      traefik.http.routers.nginx.tls: true
-      traefik.http.routers.nginx.tls.certresolver: dns
-      traefik.http.services.nginx.loadbalancer.server.port: 8080
+      traefik.http.routers.radarr.entrypoints: web,websecure
+      traefik.http.routers.radarr.rule: Host(`radarr.${DOMAIN}`) # Update to your domain
+      traefik.http.routers.radarr.tls: true
+      traefik.http.routers.radarr.tls.certresolver: dns
+      traefik.http.services.radarr.loadbalancer.server.port: 7878
 
-      traefik.http.routers.nginx-demo.entrypoints: web,websecure
-      traefik.http.routers.nginx-demo.rule: Host(`nginx-demo.${DOMAIN}`) # Update to your domain
-      traefik.http.routers.nginx-demo.tls: true
-      traefik.http.routers.nginx-demo.tls.certresolver: dns
-      traefik.http.services.nginx-demo.loadbalancer.server.port: 8081
+      traefik.http.routers.sonarr.entrypoints: web,websecure
+      traefik.http.routers.sonarr.rule: Host(`sonarr.${DOMAIN}`) # Update to your domain
+      traefik.http.routers.sonarr.tls: true
+      traefik.http.routers.sonarr.tls.certresolver: dns
+      traefik.http.services.sonarr.loadbalancer.server.port: 8989
 
 networks:
   traefik-proxy:
