@@ -94,9 +94,9 @@ services:
     container_name: wireguard-tunnel-server
     environment:
       # Update to your domain
-      - DOMAIN=wireguard-tunnel.example.com
+      - DOMAIN=wireguard-tunnel.christerrile.com
       # Number of peers to auto generate config for
-      - PEERS=artemis
+      - PEERS=1
       # Services to expose format (comma-separated)
       # SERVICES=peer-id:peer-container-name:peer-container-port:expose-port-as
       - SERVICES=peer1:radarr:7878:7878,peer1:sonarr:8989:8989
