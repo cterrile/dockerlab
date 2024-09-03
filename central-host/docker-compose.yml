@@ -108,7 +108,7 @@ services:
     ports:
       - '51820:51820/udp'
     networks:
-      - "traefik-proxy"
+      - traefik-proxy
     labels:
       traefik.enable: true
       traefik.http.routers.radarr.entrypoints: web,websecure
