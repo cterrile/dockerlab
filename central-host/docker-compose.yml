@@ -76,8 +76,6 @@ services:
   #    - "8600:8600/udp"  
     labels:
       - "traefik.enable=true"
-    #  - "traefik.http.routers.portainer.entrypoints=http"
-    #  - "traefik.http.routers.portainer.rule=Host(`consul.${DOMAIN}`)"
       - "traefik.http.middlewares.consul-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.consul.middlewares=consul-https-redirect"
       - "traefik.http.routers.consul-secure.entrypoints=https"
@@ -173,8 +171,6 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     labels:
       - "traefik.enable=true"
-    #  - "traefik.http.routers.portainer.entrypoints=http"
-    #  - "traefik.http.routers.portainer.rule=Host(`services.${DOMAIN}`)"
       - "traefik.http.middlewares.wg-easy-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.wg-easy.middlewares=wg-easy-https-redirect"
       - "traefik.http.routers.wg-easy-secure.entrypoints=https"
@@ -182,7 +178,7 @@ services:
       - "traefik.http.routers.wg-easy-secure.tls=true"
       - "traefik.http.routers.wg-easy-secure.tls.certresolver=dns"
       - "traefik.http.routers.wg-easy-secure.service=wg-easy"
-      - "traefik.http.services.wg-easy.loadbalancer.server.port=92820"
+      - "traefik.http.services.wg-easy.loadbalancer.server.port=51821"
       - "traefik.docker.network=traefik-proxy"
 
 
