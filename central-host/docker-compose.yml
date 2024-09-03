@@ -171,6 +171,19 @@ wg-easy:
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
+    labels:
+      - "traefik.enable=true"
+    #  - "traefik.http.routers.portainer.entrypoints=http"
+    #  - "traefik.http.routers.portainer.rule=Host(`services.${DOMAIN}`)"
+      - "traefik.http.middlewares.wg-easy-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.wg-easy.middlewares=wg-easy-https-redirect"
+      - "traefik.http.routers.wg-easy-secure.entrypoints=https"
+      - "traefik.http.routers.wg-easy-secure.rule=Host(`wireguard.${DOMAIN}`)"
+      - "traefik.http.routers.wg-easy-secure.tls=true"
+      - "traefik.http.routers.wg-easy-secure.tls.certresolver=dns"
+      - "traefik.http.routers.wg-easy-secure.service=wg-easy"
+      - "traefik.http.services.wg-easy.loadbalancer.server.port=92820"
+      - "traefik.docker.network=traefik-proxy"
 
 
 networks:
