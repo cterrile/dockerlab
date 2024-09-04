@@ -67,6 +67,8 @@ services:
     container_name: tailscale
     hostname: tailscale-nas
     image: tailscale/tailscale:stable
+    environment:
+      - TS_AUTHKEY=${TS_AUTH_KEY}
     volumes:
       - ./tailscale:/var/lib # State data will be stored in this directory
       - /dev/net/tun:/dev/net/tun # Required for tailscale to work
