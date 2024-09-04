@@ -61,31 +61,7 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
       - "traefik.docker.network=traefik-proxy"
 
-  consul-server:
-    image: hashicorp/consul:1.11.2
-    container_name: consul-server
-    restart: always
-    volumes:
-     - ./consul-server/server.json:/consul/config/server.json:ro
-     - ./certs/:/consul/config/certs/:ro
-    networks:
-      - traefik-proxy
-  #  ports:
-  #    - "8500:8500"
-  #    - "8600:8600/tcp"
-  #    - "8600:8600/udp"  
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.consul-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.consul.middlewares=consul-https-redirect"
-      - "traefik.http.routers.consul-secure.entrypoints=https"
-      - "traefik.http.middlewares.consul-auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PW}"
-      - "traefik.http.routers.consul-secure.rule=Host(`consul.${DOMAIN}`)"
-      - "traefik.http.routers.consul-secure.tls=true"
-      - "traefik.http.routers.consul-secure.tls.certresolver=dns"
-      - "traefik.http.routers.consul-secure.service=consul"
-      - "traefik.http.services.consul.loadbalancer.server.port=8500"
-      - "traefik.docker.network=traefik-proxy"
+
 
 #  wireguard-tunnel-server:
 #    image: ghcr.io/digitallyrefined/docker-wireguard-tunnel:v3
@@ -158,7 +134,7 @@ services:
       - etc_wireguard:/etc/wireguard
     ports:
       - "51820:51820/udp"
-      - "51821:51821/tcp"
+      #- "51821:51821/tcp"
     networks:
       - traefik-proxy
     restart: unless-stopped
