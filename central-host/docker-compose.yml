@@ -182,10 +182,12 @@ services:
       - "traefik.docker.network=traefik-proxy"
 
       - "traefik.http.routers.metabase.entrypoints=https"
+      - "traefik.http.routers.metabase.service=metabase-wg"
+
       - "traefik.http.routers.metabase.rule=Host(`metabase.${DOMAIN}`)" # Update to your domain
       - "traefik.http.routers.metabase.tls=true"
       - "traefik.http.routers.metabase.tls.certresolver=dns"
-      - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+      - "traefik.http.services.metabase-wg.loadbalancer.server.port=3000"
 
 networks:
   traefik-proxy:
