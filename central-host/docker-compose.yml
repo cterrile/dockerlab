@@ -63,39 +63,19 @@ services:
 
 
 
-#  wireguard-tunnel-server:
-#    image: ghcr.io/digitallyrefined/docker-wireguard-tunnel:v3
-#    container_name: wireguard-tunnel-server
-#    environment:
-#      # Update to your domain
-#      - DOMAIN=wireguard-tunnel.christerrile.com
-#      # Number of peers to auto generate config for
-#      - PEERS=1
-#      # Services to expose format (comma-separated)
-#      # SERVICES=peer-id:peer-container-name:peer-container-port:expose-port-as
-##      - SERVICES=peer1:radarr:7878:7878,peer1:sonarr:8989:8989
-#    cap_add:
-#      - NET_ADMIN
-#    volumes:
-#      - wireguard:/etc/wireguard
-#    restart: unless-stopped
-#    ports:
-#      - '51820:51820/udp'
-#    networks:
-#      - traefik-proxy
-#    labels:
-#      traefik.enable: true
-#      traefik.http.routers.radarr.entrypoints: web,websecure
-#      traefik.http.routers.radarr.rule: Host(`radarr.${DOMAIN}`) # Update to your domain
-#      traefik.http.routers.radarr.tls: true
-#      traefik.http.routers.radarr.tls.certresolver: dns
-#      traefik.http.services.radarr.loadbalancer.server.port: 7878
-#
-#      traefik.http.routers.sonarr.entrypoints: web,websecure
-#      traefik.http.routers.sonarr.rule: Host(`sonarr.${DOMAIN}`) # Update to your domain
-#      traefik.http.routers.sonarr.tls: true
-#      traefik.http.routers.sonarr.tls.certresolver: dns
-#      traefik.http.services.sonarr.loadbalancer.server.port: 8989
+  tailscale:
+    container_name: tailscale
+    hostname: tailscale-nas
+    image: tailscale/tailscale:stable
+    volumes:
+      - ./tailscale:/var/lib # State data will be stored in this directory
+      - /dev/net/tun:/dev/net/tun # Required for tailscale to work
+    cap_add: # Required for tailscale to work
+      - net_admin
+      - sys_module
+    command: tailscaled
+    privileged: true
+    restart: unless-stopped
 
   wg-easy:
     environment:
