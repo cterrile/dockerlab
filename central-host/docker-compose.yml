@@ -74,6 +74,8 @@ services:
       - net_admin
       - sys_module
     command: tailscaled
+    network:
+      - traefik-proxy
     privileged: true
     restart: unless-stopped
 
