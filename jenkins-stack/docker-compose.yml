@@ -26,7 +26,7 @@ services:
       # Remove following to disable basic authentication
       #BASIC_AUTH: admin:admin
       # Remove following line to get certs from Let's Encrypt
-      TLS_INTERNAL: true
+      #TLS_INTERNAL: true
       # CADDY_TLS_PROXY: true
       # CADDY_TLS_INSECURE: true
       # FORWARD_ONLY: true
