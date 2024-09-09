@@ -37,7 +37,7 @@ services:
       - "traefik.http.routers.mealie-secure.service=mealie-service"
       - "traefik.http.routers.mealie-secure.tls=true"
       - "traefik.http.routers.mealie-secure.tls.certresolver=dns"
-      - "traefik.http.services.mealie-service.loadbalancer.server.port=80"
+      - "traefik.http.services.mealie-service.loadbalancer.server.port=8080"
 
 volumes:
   mealie_data:
