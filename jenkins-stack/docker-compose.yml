@@ -8,10 +8,34 @@ services:
       - 8080:8080
       - 50000:50000
     container_name: jenkins
+    environment:
+      - JENKINS_EXT_URL=https://jenkins.${DOMAIN}
     restart: always
     volumes:
       - jenkins_config:/var/jenkins_home
 #      - /var/run/docker.sock:/var/run/docker.sock
 
+  link:
+    image: fractalnetworks/gateway-client:latest
+    environment:
+      LINK_DOMAIN: jenkins.${DOMAIN}
+      EXPOSE: jenkins:8080
+      GATEWAY_CLIENT_WG_PRIVKEY: ${CLIENT_WG_PRIVKEY}
+      GATEWAY_LINK_WG_PUBKEY: ${GATEWAY_WG_PUBKEY}
+      GATEWAY_ENDPOINT: ${GATEWAY_ENDPOINT}
+      # Remove following to disable basic authentication
+      #BASIC_AUTH: admin:admin
+      # Remove following line to get certs from Let's Encrypt
+      TLS_INTERNAL: true
+      # CADDY_TLS_PROXY: true
+      # CADDY_TLS_INSECURE: true
+      # FORWARD_ONLY: true
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+
+
+
 volumes:
   jenkins_config:
+  caddy_data:
