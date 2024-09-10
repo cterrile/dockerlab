@@ -16,7 +16,7 @@ services:
       ALLOW_SIGNUP: false
       PUID: 1000
       PGID: 1000
-      TZ: America/Anchorage
+      TZ: America/Los_Angeles
       MAX_WORKERS: 1
       WEB_CONCURRENCY: 1
       BASE_URL: https://mealie.crispterrile.com
