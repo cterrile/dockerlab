@@ -50,7 +50,7 @@ services:
     image: fractalnetworks/gateway-client:latest
     environment:
       LINK_DOMAIN: mealie.crispterrile.com
-      EXPOSE: mealie:9925
+      EXPOSE: mealie:9000
       GATEWAY_CLIENT_WG_PRIVKEY: ${CLIENT_WG_PRIVKEY}
       GATEWAY_LINK_WG_PUBKEY: ${GATEWAY_WG_PUBKEY}
       GATEWAY_ENDPOINT: ${GATEWAY_IP}
