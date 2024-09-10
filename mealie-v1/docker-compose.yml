@@ -46,6 +46,33 @@ services:
       timeout: 20s
       retries: 3
 
+  link:
+    image: fractalnetworks/gateway-client:latest
+    environment:
+      LINK_DOMAIN: mealie.crispterrile.com
+      EXPOSE: mealie:9925
+      GATEWAY_CLIENT_WG_PRIVKEY: ${CLIENT_WG_PRIVKEY}
+      GATEWAY_LINK_WG_PUBKEY: ${GATEWAY_WG_PUBKEY}
+      GATEWAY_ENDPOINT: ${GATEWAY_IP}
+      # Remove following to disable basic authentication
+      #BASIC_AUTH: admin:admin
+      # Remove following line to get certs from Let's Encrypt
+      # TLS_INTERNAL: true
+      # CADDY_TLS_PROXY: true
+      # CADDY_TLS_INSECURE: true
+      # FORWARD_ONLY: true
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+# #     uncomment to preserve tls certs
+#     volumes:
+#       - caddy_data:/data
+# # uncomment to preserve tls certs
+# volumes:
+#   caddy_data:
+
+
+
 volumes:
   mealie-data:
   mealie-pgdata:
