@@ -61,71 +61,6 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
       - "traefik.docker.network=traefik-proxy"
 
-  wg-easy:
-    environment:
-      - WG_HOST=wireguard.${DOMAIN}
-
-      # Optional:
-      # - PASSWORD_HASH=$$2y$$10$$hBCoykrB95WSzuV4fafBzOHWKu9sbyVa34GJr8VV5R/pIelfEMYyG (needs double $$, hash of 'foobar123'; see "How_to_generate_an_bcrypt_hash.md" for generate the hash)
-      # - PORT=51821
-      # - WG_PORT=51820
-      # - WG_CONFIG_PORT=92820
-      # - WG_DEFAULT_ADDRESS=10.8.0.x
-      # - WG_DEFAULT_DNS=1.1.1.1
-      # - WG_MTU=1420
-      - WG_ALLOWED_IPS=10.0.1.0/24, 172.19.0.0/16
-      # - WG_PERSISTENT_KEEPALIVE=25
-      # - WG_PRE_UP=echo "Pre Up" > /etc/wireguard/pre-up.txt
-      # - WG_POST_UP=echo "Post Up" > /etc/wireguard/post-up.txt
-      # - WG_PRE_DOWN=echo "Pre Down" > /etc/wireguard/pre-down.txt
-      # - WG_POST_DOWN=echo "Post Down" > /etc/wireguard/post-down.txt
-      # - UI_TRAFFIC_STATS=true
-      # - UI_CHART_TYPE=0 # (0 Charts disabled, 1 # Line chart, 2 # Area chart, 3 # Bar chart)
-      # - WG_ENABLE_ONE_TIME_LINKS=true
-      # - UI_ENABLE_SORT_CLIENTS=true
-      # - WG_ENABLE_EXPIRES_TIME=true
-    
-    image: ghcr.io/wg-easy/wg-easy
-    container_name: wg-easy
-    volumes:
-      - etc_wireguard:/etc/wireguard
-    ports:
-      - "51820:51820/udp"
-      #- "51821:51821/tcp"
-    networks:
-      - traefik-proxy
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-      # - NET_RAW # ⚠️ Uncomment if using Podman
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.wg-easy-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.wg-easy.middlewares=wg-easy-https-redirect"
-      - "traefik.http.routers.wg-easy-secure.entrypoints=https"
-      - "traefik.http.routers.wg-easy-secure.rule=Host(`wireguard.${DOMAIN}`)"
-      - "traefik.http.routers.wg-easy-secure.tls=true"
-      - "traefik.http.routers.wg-easy-secure.tls.certresolver=dns"
-      - "traefik.http.routers.wg-easy-secure.service=wg-easy"
-      - "traefik.http.services.wg-easy.loadbalancer.server.port=51821"
-      - "traefik.docker.network=traefik-proxy"
-      - "traefik.http.middlewares.wg-easy-auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PW}"
-      - "traefik.http.routers.wg-easy-secure.middlewares=wg-easy-auth"
-
-      - "traefik.http.routers.metabase.entrypoints=https"
-      - "traefik.http.routers.metabase.service=metabase-wg"
-
-      - "traefik.http.routers.metabase.rule=Host(`metabase.${DOMAIN}`)" # Update to your domain
-      - "traefik.http.routers.metabase.tls=true"
-      - "traefik.http.routers.metabase.tls.certresolver=dns"
-      - "traefik.http.services.metabase-wg.loadbalancer.server.port=3000"
- 
-
-
 
 networks:
   traefik-proxy:
@@ -133,5 +68,3 @@ networks:
 
 volumes:
   portainer_data:
-  wireguard:
-  etc_wireguard:
