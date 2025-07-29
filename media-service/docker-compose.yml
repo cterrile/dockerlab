@@ -17,8 +17,7 @@ services:
     volumes:
       - ${PLEX_CONFIG_DIR}:/config
       - ${PLEX_MEDIA_DIR}:/media/NAS
-      - plex_library:/media/truenas
-      - ${PLEX_MEDIA_DIR_2}:/media/local
+      - new_plex_library:/media/truenas
       
 
   tautulli:
@@ -42,4 +41,7 @@ volumes:
 
   plex_library:
     name: plex_library
+    external: true
+  new_plex_library:
+    name: new_plex_library
     external: true
