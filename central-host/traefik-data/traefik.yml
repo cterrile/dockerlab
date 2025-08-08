@@ -20,9 +20,3 @@ certificatesResolvers:
       dnsChallenge:
         provider: digitalocean
         delayBeforeCheck: 0
-
-entryPoints:
-  name: "kuma"
-    address: "10.13.14.2:3001"
-    proxyProtocol:
-      insecure: true
