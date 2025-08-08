@@ -15,14 +15,14 @@ providers:
 certificatesResolvers:
   dns:
     acme:
-      email: contact-registrant@google.com
+      email: chris@triviatrackerpro.com
       storage: acme.json
       dnsChallenge:
         provider: digitalocean
         delayBeforeCheck: 0
   letsencrypt:
     acme:
-      email: chris@triviatrackerpro.com$
+      email: chris@triviatrackerpro.com
       storage: acme2.json
       httpChallenge:
         entryPoint: http
