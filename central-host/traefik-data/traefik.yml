@@ -23,6 +23,6 @@ certificatesResolvers:
   letsencrypt:
         acme:
             email: chris@triviatrackerpro.com$
-            storage: acme.json
+            storage: acme2.json
             httpChallenge:
                 entryPoint: http
