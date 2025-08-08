@@ -20,3 +20,9 @@ certificatesResolvers:
       dnsChallenge:
         provider: digitalocean
         delayBeforeCheck: 0
+  letsencrypt:
+        acme:
+            email: chris@triviatrackerpro.com$
+            storage: acme.json
+            httpChallenge:
+                entryPoint: http
