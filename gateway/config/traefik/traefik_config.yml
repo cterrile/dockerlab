@@ -13,7 +13,7 @@ experimental:
   plugins:
     badger:
       moduleName: "github.com/fosrl/badger"
-      version: "1.4.0"
+      version: "v1.4.0"
 
 log:
   level: "INFO"
@@ -28,7 +28,7 @@ certificatesResolvers:
     acme:
       httpChallenge:
         entryPoint: web
-      email: "{{.LetsEncryptEmail}}"
+      email: "${LETSENCRYPT_EMAIL}"
       storage: "/letsencrypt/acme.json"
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
 
