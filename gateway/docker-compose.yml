@@ -11,6 +11,37 @@ services:
           memory: 1g
         reservations:
           memory: 256m
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: pangolin
+      # Middlewares (Badger plugin is registered in Traefik static config)
+      traefik.http.middlewares.pangolin-badger.plugin.badger.disableForwardAuth: "true"
+      traefik.http.middlewares.pangolin-https.redirectscheme.scheme: https
+      traefik.http.middlewares.pangolin-https.redirectscheme.permanent: "true"
+      # Backends
+      traefik.http.services.pangolin-next.loadbalancer.server.port: "3002"
+      traefik.http.services.pangolin-api.loadbalancer.server.port: "3000"
+      # HTTP → HTTPS (entry web)
+      traefik.http.routers.pangolin-root-redirect.rule: "Host(`gateway.${DOMAIN:?set DOMAIN in .env}`)"
+      traefik.http.routers.pangolin-root-redirect.entrypoints: web
+      traefik.http.routers.pangolin-root-redirect.middlewares: pangolin-https@docker,pangolin-badger@docker
+      traefik.http.routers.pangolin-root-redirect.service: pangolin-next
+      # Next.js (HTTPS, not /api/v1)
+      traefik.http.routers.pangolin-next.rule: "Host(`gateway.${DOMAIN:?set DOMAIN in .env}`) && !PathPrefix(`/api/v1`)"
+      traefik.http.routers.pangolin-next.entrypoints: websecure
+      traefik.http.routers.pangolin-next.middlewares: pangolin-badger@docker
+      traefik.http.routers.pangolin-next.tls: "true"
+      traefik.http.routers.pangolin-next.tls.certresolver: letsencrypt
+      traefik.http.routers.pangolin-next.service: pangolin-next
+      traefik.http.routers.pangolin-next.priority: "1"
+      # API + WebSocket (HTTPS)
+      traefik.http.routers.pangolin-api.rule: "Host(`gateway.${DOMAIN:?set DOMAIN in .env}`) && PathPrefix(`/api/v1`)"
+      traefik.http.routers.pangolin-api.entrypoints: websecure
+      traefik.http.routers.pangolin-api.middlewares: pangolin-badger@docker
+      traefik.http.routers.pangolin-api.tls: "true"
+      traefik.http.routers.pangolin-api.tls.certresolver: letsencrypt
+      traefik.http.routers.pangolin-api.service: pangolin-api
+      traefik.http.routers.pangolin-api.priority: "10"
     volumes:
       - ./config:/app/config
     healthcheck:
@@ -50,12 +81,38 @@ services:
       pangolin:
         condition: service_healthy
     environment:
-      # dynamic_config.yml is Go-templated by Traefik; use {{ env "DOMAIN" }}, not ${DOMAIN}
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL in .env}
     command:
-      - --configFile=/etc/traefik/traefik_config.yml
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=pangolin
+      - --providers.http.endpoint=http://pangolin:3001/api/v1/traefik-config
+      - --providers.http.pollinterval=5s
+      - --providers.file.filename=/etc/traefik/dynamic_config.yml
+      - --experimental.plugins.badger.modulename=github.com/fosrl/badger
+      - --experimental.plugins.badger.version=v1.4.0
+      - --log.level=INFO
+      - --log.format=common
+      - --log.maxsize=100
+      - --log.maxbackups=3
+      - --log.maxage=3
+      - --log.compress=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.transport.respondingtimeouts.readtimeout=30m
+      - --entrypoints.websecure.http.tls.certresolver=letsencrypt
+      - --entrypoints.websecure.http.encodedcharacters.allowencodedslash=true
+      - --entrypoints.websecure.http.encodedcharacters.allowencodedquestionmark=true
+      - --serverstransport.insecureskipverify=true
+      - --ping.entrypoint=web
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik:/etc/traefik:ro
       - ./config/letsencrypt:/letsencrypt
 
