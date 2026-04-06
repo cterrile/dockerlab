@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+
+  uptime:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    volumes:
+      - uptime-kuma:/app/data
+    ports:
+      - 3001:3001
+    restart: always
+    networks:
+      - pangolin
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.uptime.name=uptime-kuma
+      - pangolin.public-resources.uptime.full-domain=uptime.${DOMAIN}
+      - pangolin.public-resources.uptime.protocol=http
+
+networks:
+  pangolin:
+    external: true
+    name: pangolin
+
+volumes:
+  uptime-kuma:
+    external: true
+    name: uptime_uptime-kuma

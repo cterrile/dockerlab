@@ -49,6 +49,9 @@ services:
     depends_on:
       pangolin:
         condition: service_healthy
+    environment:
+      # Used by dynamic_config.yml Go template: Host(`gateway.{{ env "Domain" }}`)
+      Domain: ${DOMAIN}
     command:
       - --configFile=/etc/traefik/traefik_config.yml
     volumes:
