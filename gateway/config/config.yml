@@ -1,9 +1,9 @@
 gerbil:
     start_port: 51820
-    base_endpoint: "{{.DashboardDomain}}"
+    base_endpoint: "gateway.{{.BaseDomain}}"
 
 app:
-    dashboard_url: "https://{{.DashboardDomain}}"
+    dashboard_url: "https://gateway.{{.BaseDomain}}"
     log_level: "info"
     telemetry:
         anonymous_usage: true
@@ -15,7 +15,7 @@ domains:
 server:
     secret: "{{.Secret}}"
     cors:
-        origins: ["https://{{.DashboardDomain}}"]
+        origins: ["https://gateway.{{.BaseDomain}}"]
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
         allowed_headers: ["X-CSRF-Token", "Content-Type"]
         credentials: false
