@@ -50,8 +50,9 @@ services:
       pangolin:
         condition: service_healthy
     environment:
-      # Used by dynamic_config.yml Go template: Host(`gateway.{{ env "Domain" }}`)
-      DOMAIN: ${DOMAIN}
+      # dynamic_config.yml is Go-templated by Traefik; use {{ env "DOMAIN" }}, not ${DOMAIN}
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
     command:
       - --configFile=/etc/traefik/traefik_config.yml
     volumes:
