@@ -1,6 +1,6 @@
 services:
   newt:
-    image: fosrl/newt:latest
+    image: fosrl/newt:1.11.0
     container_name: newt-edge-client
     networks:
       - pangolin_site
