@@ -1,0 +1,4 @@
+# Static Traefik configuration lives in `gateway/docker-compose.yml` on the `traefik` service (`command:`).
+# Traefik does not support global/static options via Docker `labels:`—labels are only for the Docker *routing* provider.
+# HTTP routes: Docker labels on the `pangolin` service in docker-compose.yml.
+# `dynamic_config.yml` (mounted at /etc/traefik/) only keeps TCP serversTransports not expressible as labels.

@@ -1,0 +1,10 @@
+# HTTP routers moved to Docker labels on the `pangolin` service in docker-compose.yml.
+# TCP serversTransports cannot be expressed as Docker labels; Pangolin/HTTP provider may reference these names.
+tcp:
+  serversTransports:
+    pp-transport-v1:
+      proxyProtocol:
+        version: 1
+    pp-transport-v2:
+      proxyProtocol:
+        version: 2
