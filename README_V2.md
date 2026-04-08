@@ -7,5 +7,18 @@ has much more of its configuration maintained within the codebase, instead of be
 
 Pangolin sits at the center of this layout: it fronts every containerized service meant for the web, combining Traefik as the reverse proxy with a WireGuard tunnel so those endpoints stay reachable no matter which machine actually runs them.
 
+### Layout
 
-
+```
+dockerlab/
+├── gateway/
+│   └── containers: pangolin, gerbil, traefik
+├── site
+│   └── containers: newt
+└── stacks/
+    ├── mealie/
+    │   └── docker-compose.yml
+    ├── plex/
+    ├── uptime/
+    └── ...
+```
