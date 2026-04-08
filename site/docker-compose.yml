@@ -3,7 +3,7 @@ services:
     image: fosrl/newt:1.11.0
     container_name: newt-edge-client
     networks:
-      - pangolin_site
+      - pangolin
     restart: unless-stopped
     environment:
       - PANGOLIN_ENDPOINT=${PANGOLIN_ENDPOINT}
@@ -12,5 +12,5 @@ services:
 
 
 networks:
-  pangolin_site:
+  pangolin:
     external: true
