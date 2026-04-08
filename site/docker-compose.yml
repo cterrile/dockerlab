@@ -1,9 +1,16 @@
 services:
   newt:
     image: fosrl/newt:latest
-    container_name: newt
+    container_name: newt-edge-client
+    networks:
+      - pangolin_site
     restart: unless-stopped
     environment:
       - PANGOLIN_ENDPOINT=${PANGOLIN_ENDPOINT}
       - NEWT_ID=${NEWT_ID}
       - NEWT_SECRET=${NEWT_SECRET}
+
+
+networks:
+  pangolin_site:
+    external: true
