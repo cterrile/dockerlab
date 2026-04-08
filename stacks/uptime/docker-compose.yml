@@ -16,10 +16,10 @@ services:
       - pangolin.public-resources.uptime.name=uptime-kuma
       - pangolin.public-resources.uptime.full-domain=uptime.${DOMAIN}
       - pangolin.public-resources.uptime.protocol=http
-      - pangolin.public-resources.uptime.target.hostname=uptime-kuma
-      - pangolin.public-resources.uptime.target.port=3001
-      - pangolin.public-resources.uptime.target.path=/
-      - pangolin.public-resources.uptime.target.method=http
+      - pangolin.public-resources.uptime.targets[0].hostname=uptime-kuma
+      - pangolin.public-resources.uptime.targets[0].port=3001
+      - pangolin.public-resources.uptime.targets[0].path=/
+      - pangolin.public-resources.uptime.targets[0].method=http
 
 networks:
   pangolin:
