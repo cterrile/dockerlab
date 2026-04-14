@@ -39,11 +39,9 @@
 
         - type: videos
           channels:
-            - UCXuqSBlHAE6Xw-yeJA0Tunw # Linus Tech Tips
+
             - UCR-DXc1voovS8nhAvccRZhg # Jeff Geerling
-            - UCsBjURrPoezykLs9EqgamOA # Fireship
-            - UCBJycsmduvYEL83R_U4JriQ # Marques Brownlee
-            - UCHnyfMqiRRG1u-2MsSQLbXA # Veritasium
+
 
         - type: group
           widgets:
@@ -57,11 +55,11 @@
     - size: small
       widgets:
         - type: weather
-          location: London, United Kingdom
-          units: metric # alternatively "imperial"
+          location: San Francisco, United States
+          units: imperial # alternatively "imperial"
           hour-format: 12h # alternatively "24h"
           # Optionally hide the location from being displayed in the widget
-          # hide-location: true
+          hide-location: true
 
         - type: markets
           markets:
@@ -83,6 +81,9 @@
           # token: ...
           repositories:
             - glanceapp/glance
-            - go-gitea/gitea
-            - immich-app/immich
-            - syncthing/syncthing
+            - fosrl/pangolin
+            - portainer/portainer-ee
+            - sonarr/sonarr
+            - radarr/radarr
+            - mealie-recipes/mealie
+            - plexinc/pms-docker
