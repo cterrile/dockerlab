@@ -37,7 +37,10 @@ services:
       SMTP_AUTH_STRATEGY: 'NONE'
       SMTP_FROM_NAME: Mealie
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
-      
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: zai-org/GLM-5.1
+      OPENAI_AUDIO_MODEL: openai/whisper-large-v3
     depends_on:
       postgres:
         condition: service_healthy
