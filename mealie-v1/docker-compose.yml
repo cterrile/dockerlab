@@ -1,6 +1,6 @@
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v2.2.0 # 
+    image: ghcr.io/mealie-recipes/mealie:v2.4.1 # 
     container_name: mealie
     restart: always
     ports:
@@ -19,7 +19,7 @@ services:
       TZ: America/Los_Angeles
       MAX_WORKERS: 1
       WEB_CONCURRENCY: 1
-      BASE_URL: https://mealie.crispterrile.com
+      BASE_URL: cookbook.${DOMAIN}
       # Database Settings
       DB_ENGINE: postgres
       POSTGRES_USER: mealie
@@ -45,31 +45,6 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
-
-  link:
-    image: fractalnetworks/gateway-client:latest
-    environment:
-      LINK_DOMAIN: mealie.crispterrile.com
-      EXPOSE: mealie:9000
-      GATEWAY_CLIENT_WG_PRIVKEY: ${CLIENT_WG_PRIVKEY}
-      GATEWAY_LINK_WG_PUBKEY: ${GATEWAY_WG_PUBKEY}
-      GATEWAY_ENDPOINT: ${GATEWAY_IP}
-      # Remove following to disable basic authentication
-      #BASIC_AUTH: admin:admin
-      # Remove following line to get certs from Let's Encrypt
-      # TLS_INTERNAL: true
-      # CADDY_TLS_PROXY: true
-      # CADDY_TLS_INSECURE: true
-      # FORWARD_ONLY: true
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-# #     uncomment to preserve tls certs
-#     volumes:
-#       - caddy_data:/data
-# # uncomment to preserve tls certs
-# volumes:
-#   caddy_data:
 
 
 
