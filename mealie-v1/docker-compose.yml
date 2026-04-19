@@ -3,7 +3,8 @@ services:
     image: ghcr.io/mealie-recipes/mealie:v3.6.1 # 
     container_name: mealie
     restart: always
-    ports:
+    networks:
+      - pangolin
         - "9925:9000" # 
     deploy:
       resources:
@@ -68,3 +69,7 @@ services:
 volumes:
   mealie-data:
   mealie-pgdata:
+
+networks:
+  pangolin:
+    external: true
