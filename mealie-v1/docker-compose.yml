@@ -1,6 +1,6 @@
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v3.1.2 # 
+    image: ghcr.io/mealie-recipes/mealie:v3.3.2 # 
     container_name: mealie
     restart: always
     ports:
@@ -30,6 +30,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.mealie.name=mealie
+      - pangolin.public-resources.mealie.full-domain=cookbook.${DOMAIN}
+      - pangolin.public-resources.mealie.protocol=http
+      - pangolin.public-resources.mealie.targets[0].hostname=mealie
+      - pangolin.public-resources.mealie.targets[0].port=9000
+      - pangolin.public-resources.mealie.targets[0].path=/
+      - pangolin.public-resources.mealie.targets[0].method=http  
 
   postgres:
     container_name: postgres
