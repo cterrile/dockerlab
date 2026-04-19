@@ -5,7 +5,8 @@ services:
     restart: always
     networks:
       - pangolin
-        - "9925:9000" # 
+    ports:
+      - "9925:9000" # 
     deploy:
       resources:
         limits:
