@@ -1,6 +1,6 @@
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v2.4.1 # 
+    image: ghcr.io/mealie-recipes/mealie:v2.8.0 # 
     container_name: mealie
     restart: always
     ports:
@@ -33,7 +33,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:15
+    image: postgres:16
     restart: always
     volumes:
       - mealie-pgdata:/var/lib/postgresql/data
