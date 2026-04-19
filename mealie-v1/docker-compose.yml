@@ -1,6 +1,6 @@
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v3.9.2 # 
+    image: ghcr.io/mealie-recipes/mealie:v3.12.0 # 
     container_name: mealie
     restart: always
     networks:
@@ -56,7 +56,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:15.12
+    image: postgres:15.15
     restart: always
     networks:
       - mealie
