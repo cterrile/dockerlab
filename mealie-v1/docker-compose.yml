@@ -4,6 +4,7 @@ services:
     container_name: mealie
     restart: always
     networks:
+      - mealie
       - pangolin
     ports:
       - "9925:9000" # 
@@ -54,6 +55,8 @@ services:
     container_name: postgres
     image: postgres:15.12
     restart: always
+    networks:
+      - mealie
     volumes:
       - mealie-pgdata:/var/lib/postgresql/data
     environment:
@@ -74,3 +77,5 @@ volumes:
 networks:
   pangolin:
     external: true
+  mealie:
+    driver: bridge
