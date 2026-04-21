@@ -1,0 +1,4 @@
+host: artemis
+docker_volumes:
+  uptime_kuma_config:
+    backup: true

@@ -16,7 +16,6 @@ services:
       - ALLOWED_NETWORKS="192.168.5.0/24"
     volumes:
       - ${PLEX_CONFIG_DIR}:/config
-      - ${PLEX_MEDIA_DIR}:/media/NAS
       - new_plex_library:/media/truenas
       
 
