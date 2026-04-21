@@ -18,7 +18,9 @@ services:
       - pangolin.public-resources.uptime.targets[0].port=3001
       - pangolin.public-resources.uptime.targets[0].path=/
       - pangolin.public-resources.uptime.targets[0].method=http
-
+      # Glance Widget Labels
+      - glance.name=uptime-kuma
+      - glance.url=https://uptime.${DOMAIN}
 networks:
   pangolin:
     external: true

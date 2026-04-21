@@ -1,0 +1,6 @@
+host: artemis
+docker_volumes:
+  mealie_config:
+    backup: true
+  mealie_pgdata:
+    backup: true
