@@ -1,0 +1,58 @@
+---
+- name: "{{ stack_name }} | Load infra config"
+  include_vars:
+    file: "{{ stacks_dir }}/{{ stack_name }}/infra.yml"
+    name: stack_infra
+
+- name: "{{ stack_name }} | Set deploy path"
+  set_fact:
+    _deploy_path: "{{ stack_infra.deploy_path | default(default_deploy_base ~ '/' ~ stack_name) }}"
+
+- name: "{{ stack_name }} | Ensure deploy directory exists"
+  file:
+    path: "{{ _deploy_path }}"
+    state: directory
+    mode: "0750"
+
+- name: "{{ stack_name }} | Sync stack files to host"
+  synchronize:
+    src: "{{ stacks_dir }}/{{ stack_name }}/"
+    dest: "{{ _deploy_path }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=infra.yml"
+  register: sync_result
+
+- name: "{{ stack_name }} | Render .env from secrets"
+  template:
+    src: env.j2
+    dest: "{{ _deploy_path }}/.env"
+    mode: "0600"
+  when: stack_infra.env_file | default(false)
+  register: env_result
+
+- name: "{{ stack_name }} | Pull images"
+  command:
+    cmd: "{{ docker_compose_cmd }} pull"
+    chdir: "{{ _deploy_path }}"
+  register: pull_result
+  changed_when: "'Pull complete' in pull_result.stdout or 'Downloaded' in pull_result.stdout"
+
+- name: "{{ stack_name }} | Deploy stack"
+  command:
+    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
+    chdir: "{{ _deploy_path }}"
+  register: deploy_result
+  changed_when: "'Started' in deploy_result.stderr or 'Creating' in deploy_result.stderr"
+
+- name: "{{ stack_name }} | Verify containers are running"
+  command:
+    cmd: "{{ docker_compose_cmd }} ps --format json"
+    chdir: "{{ _deploy_path }}"
+  register: ps_result
+  changed_when: false
+  failed_when: false
+
+- name: "{{ stack_name }} | Show running containers"
+  debug:
+    msg: "{{ ps_result.stdout_lines | default([]) }}"

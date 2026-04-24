@@ -1,0 +1,90 @@
+---
+# Deploys the Pangolin gateway stack.
+#
+# The gateway host must be defined in inventory. By default it targets
+# the host tagged "gateway_host" — override with --extra-vars or by
+# setting the variable in group_vars.
+#
+# Required env vars: DOMAIN, PANGOLIN_SECRET, LETSENCRYPT_EMAIL
+
+- name: Deploy Pangolin gateway
+  hosts: "{{ gateway_target_host | default('hermes') }}"
+  become: true
+  vars:
+    gateway_deploy_path: /opt/gateway
+
+  tasks:
+    - name: Ensure deploy directory exists
+      file:
+        path: "{{ gateway_deploy_path }}"
+        state: directory
+        mode: "0750"
+
+    - name: Sync gateway files to host
+      synchronize:
+        src: "{{ gateway_dir }}/"
+        dest: "{{ gateway_deploy_path }}/"
+        delete: true
+        rsync_opts:
+          - "--exclude=config/config.yml"
+          - "--exclude=config/letsencrypt"
+          - "--exclude=.env"
+      register: sync_result
+
+    - name: Render gateway .env
+      copy:
+        dest: "{{ gateway_deploy_path }}/.env"
+        mode: "0600"
+        content: |
+          DOMAIN={{ lookup('env', 'DOMAIN') }}
+          PANGOLIN_SECRET={{ lookup('env', 'PANGOLIN_SECRET') }}
+          LETSENCRYPT_EMAIL={{ lookup('env', 'LETSENCRYPT_EMAIL') }}
+
+    - name: Ensure envsubst is available
+      package:
+        name: gettext-base
+        state: present
+
+    - name: Render Pangolin config from template
+      shell:
+        cmd: >
+          export DOMAIN="{{ lookup('env', 'DOMAIN') }}"
+          PANGOLIN_SECRET="{{ lookup('env', 'PANGOLIN_SECRET') }}";
+          envsubst '$DOMAIN $PANGOLIN_SECRET'
+          < config/config.template.yml > config/config.yml
+        chdir: "{{ gateway_deploy_path }}"
+      changed_when: true
+
+    - name: Pull gateway images
+      command:
+        cmd: "{{ docker_compose_cmd }} pull"
+        chdir: "{{ gateway_deploy_path }}"
+      register: pull_result
+      changed_when: "'Pull complete' in pull_result.stdout or 'Downloaded' in pull_result.stdout"
+
+    - name: Deploy gateway stack
+      command:
+        cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
+        chdir: "{{ gateway_deploy_path }}"
+      register: deploy_result
+      changed_when: "'Started' in deploy_result.stderr or 'Creating' in deploy_result.stderr"
+
+    - name: Wait for Pangolin health check
+      uri:
+        url: http://localhost:3001/api/v1/
+        method: GET
+        status_code: [200, 301, 302]
+      register: health
+      retries: 30
+      delay: 3
+      until: health.status in [200, 301, 302]
+      ignore_errors: true
+
+    - name: Show health check result
+      debug:
+        msg: >-
+          {{
+            'Gateway is healthy (HTTP ' ~ health.status ~ ')'
+            if health.status | default(0) in [200, 301, 302]
+            else 'Gateway health check failed — check container logs'
+          }}

@@ -1,0 +1,70 @@
+---
+- name: Deploy Docker Compose stacks
+  hosts: all
+  become: true
+  vars:
+    changed_stacks: "{{ lookup('env', 'CHANGED_STACKS') | default('all', true) }}"
+
+  pre_tasks:
+    - name: Find all stack infra files
+      find:
+        paths: "{{ stacks_dir }}"
+        patterns: "infra.yml"
+        recurse: true
+        depth: 2
+      delegate_to: localhost
+      run_once: true
+      register: infra_files
+
+    - name: Read stack infra configs
+      slurp:
+        src: "{{ item.path }}"
+      loop: "{{ infra_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}/{{ item.path | dirname | basename }}"
+      delegate_to: localhost
+      run_once: true
+      register: infra_contents
+
+    - name: Build stack-to-host mapping
+      set_fact:
+        all_stacks: >-
+          {{
+            all_stacks | default({}) | combine({
+              (item.source | dirname | basename): (item.content | b64decode | from_yaml)
+            })
+          }}
+      loop: "{{ infra_contents.results }}"
+      loop_control:
+        label: "{{ item.source | dirname | basename }}"
+      run_once: true
+
+    - name: Filter stacks assigned to this host
+      set_fact:
+        my_stacks: >-
+          {{
+            all_stacks | dict2items
+            | selectattr('value.host', 'equalto', inventory_hostname)
+            | map(attribute='key') | list
+          }}
+
+    - name: Filter to changed stacks only
+      set_fact:
+        deploy_stacks: >-
+          {{
+            my_stacks if changed_stacks == 'all'
+            else my_stacks | intersect(changed_stacks.split(','))
+          }}
+
+    - name: Show stacks to deploy
+      debug:
+        msg: "Deploying stacks on {{ inventory_hostname }}: {{ deploy_stacks | join(', ') | default('(none)') }}"
+
+  tasks:
+    - name: Deploy each stack
+      include_role:
+        name: docker_stack
+      loop: "{{ deploy_stacks }}"
+      loop_control:
+        loop_var: stack_name
+      when: deploy_stacks | length > 0

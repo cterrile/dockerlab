@@ -1,1 +1,7 @@
 host: artemis
+deploy_path: /opt/stacks/glance
+env_file: true
+secrets:
+  - DOMAIN
+docker_volumes: {}
+depends_on_stacks: []

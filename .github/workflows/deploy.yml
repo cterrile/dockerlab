@@ -1,0 +1,117 @@
+name: Deploy Stacks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "stacks/**"
+      - "gateway/**"
+      - "ansible/**"
+  workflow_dispatch:
+    inputs:
+      stacks:
+        description: "Comma-separated stack names to deploy, or 'all'"
+        required: false
+        default: "all"
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  detect-changes:
+    name: Detect Changed Stacks
+    runs-on: ubuntu-latest
+    outputs:
+      changed_stacks: ${{ steps.changes.outputs.stacks }}
+      should_deploy: ${{ steps.changes.outputs.should_deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed stacks
+        id: changes
+        run: |
+          # Manual trigger with explicit stack list
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "stacks=${{ github.event.inputs.stacks }}" >> "$GITHUB_OUTPUT"
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Detect stacks changed in the latest commit
+          CHANGED_STACKS=$(git diff --name-only HEAD~1 HEAD -- stacks/ \
+            | cut -d'/' -f2 | sort -u | paste -sd,)
+
+          # Check if ansible config changed (triggers full deploy)
+          ANSIBLE_CHANGED=$(git diff --name-only HEAD~1 HEAD -- ansible/ | head -1)
+
+          if [ -n "$ANSIBLE_CHANGED" ]; then
+            echo "stacks=all" >> "$GITHUB_OUTPUT"
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$CHANGED_STACKS" ]; then
+            echo "stacks=$CHANGED_STACKS" >> "$GITHUB_OUTPUT"
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stacks=" >> "$GITHUB_OUTPUT"
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Summary
+        run: |
+          echo "### Deploy trigger" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Event:** ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Stacks:** \`${{ steps.changes.outputs.stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy via Ansible
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_deploy == 'true'
+    runs-on: self-hosted
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@v1
+        with:
+          url: ${{ secrets.INFISICAL_URL }}
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ secrets.INFISICAL_PROJECT_ID }}
+          env-slug: prod
+
+      - name: Resolve target hosts
+        id: hosts
+        env:
+          CHANGED_STACKS: ${{ needs.detect-changes.outputs.changed_stacks }}
+        run: |
+          source scripts/resolve-changed-stacks.sh
+          HOSTS=$(resolve_hosts "$CHANGED_STACKS")
+          echo "ansible_limit=$HOSTS" >> "$GITHUB_OUTPUT"
+          echo "Resolved hosts: $HOSTS"
+
+      - name: Run Ansible deployment
+        working-directory: ansible
+        env:
+          CHANGED_STACKS: ${{ needs.detect-changes.outputs.changed_stacks }}
+          ANSIBLE_FORCE_COLOR: "true"
+        run: |
+          LIMIT="${{ steps.hosts.outputs.ansible_limit }}"
+
+          ARGS=(playbooks/deploy-stacks.yml)
+          if [ "$LIMIT" != "all" ] && [ -n "$LIMIT" ]; then
+            ARGS+=(--limit "$LIMIT")
+          fi
+
+          ansible-playbook "${ARGS[@]}"
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### Deployment result" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Status:** ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Stacks:** \`${{ needs.detect-changes.outputs.changed_stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Hosts:** \`${{ steps.hosts.outputs.ansible_limit }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

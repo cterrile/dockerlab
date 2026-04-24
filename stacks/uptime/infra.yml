@@ -1,4 +1,9 @@
 host: artemis
+deploy_path: /opt/stacks/uptime
+env_file: true
+secrets:
+  - DOMAIN
 docker_volumes:
-  uptime_kuma_config:
+  uptime-kuma:
     backup: true
+depends_on_stacks: []

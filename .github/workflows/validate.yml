@@ -1,0 +1,108 @@
+name: Validate
+
+on:
+  pull_request:
+    paths:
+      - "stacks/**"
+      - "gateway/**"
+      - "ansible/**"
+  workflow_dispatch:
+
+jobs:
+  validate-compose:
+    name: Validate Compose Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate stack compose files
+        run: |
+          exit_code=0
+          for f in stacks/*/docker-compose.yml; do
+            stack_dir=$(dirname "$f")
+            stack_name=$(basename "$stack_dir")
+            echo "::group::$stack_name"
+
+            # Collect env var references and set dummy values so
+            # docker compose config can parse the file structure.
+            dummy_env=$(grep -oP '\$\{?\K[A-Z_]+' "$f" | sort -u \
+              | while read -r var; do echo "$var=placeholder"; done)
+
+            if env $dummy_env docker compose -f "$f" config --quiet 2>&1; then
+              echo "  ✓ $f"
+            else
+              echo "::error file=$f::Compose validation failed for $stack_name"
+              exit_code=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $exit_code
+
+      - name: Validate gateway compose file
+        if: hashFiles('gateway/docker-compose.yml') != ''
+        run: |
+          dummy_env=$(grep -oP '\$\{?\K[A-Z_]+' gateway/docker-compose.yml \
+            | sort -u | while read -r var; do echo "$var=placeholder"; done)
+          env $dummy_env docker compose -f gateway/docker-compose.yml config --quiet
+
+      - name: Validate infra.yml schemas
+        run: |
+          exit_code=0
+          for f in stacks/*/infra.yml; do
+            stack_name=$(basename "$(dirname "$f")")
+            python3 -c "
+          import yaml, sys
+          required = ['host']
+          with open('$f') as fh:
+              data = yaml.safe_load(fh)
+          if not isinstance(data, dict):
+              print(f'  ✗ $f — not a valid YAML mapping')
+              sys.exit(1)
+          for key in required:
+              if key not in data:
+                  print(f'  ✗ $f — missing required key: {key}')
+                  sys.exit(1)
+          print(f'  ✓ $f')
+          " || {
+              echo "::error file=$f::infra.yml validation failed for $stack_name"
+              exit_code=1
+            }
+          done
+          exit $exit_code
+
+  lint-ansible:
+    name: Lint Ansible
+    runs-on: ubuntu-latest
+    if: hashFiles('ansible/playbooks/*.yml') != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ansible-lint
+        run: pip install ansible-lint
+
+      - name: Run ansible-lint
+        working-directory: ansible
+        run: ansible-lint playbooks/
+
+  detect-changes:
+    name: Show Changed Stacks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed stacks
+        run: |
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- stacks/ \
+            | cut -d'/' -f2 | sort -u | paste -sd, || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "No stack changes detected."
+          else
+            echo "### Changed stacks: \`$CHANGED\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "Changed stacks: $CHANGED"
+          fi

@@ -1,0 +1,5 @@
+---
+- name: Restart stack
+  command:
+    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans --force-recreate"
+    chdir: "{{ _deploy_path }}"
