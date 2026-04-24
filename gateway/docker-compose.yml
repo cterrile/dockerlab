@@ -46,6 +46,7 @@ services:
       traefik.http.routers.pangolin-api.priority: "10"
     volumes:
       - ./config:/app/config
+      - pangolin_maxmind_db:/maxmind_db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/"]
       interval: "3s"
@@ -123,3 +124,7 @@ networks:
     driver: bridge
     name: pangolin
     enable_ipv6: false
+
+volumes:
+  pangolin_maxmind_db:
+    external: true
