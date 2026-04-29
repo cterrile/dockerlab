@@ -1,0 +1,84 @@
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.16.0 # 
+    container_name: mealie
+    restart: always
+    networks:
+      - mealie
+      - pangolin
+    ports:
+      - "9925:9000" # 
+    deploy:
+      resources:
+        limits:
+          memory: 1000M # 
+    volumes:
+      - mealie-data:/app/data/
+    environment:
+      # Set Backend ENV Variables Here
+      ALLOW_SIGNUP: false
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+      MAX_WORKERS: 1
+      WEB_CONCURRENCY: 1
+      BASE_URL: cookbook.${DOMAIN}
+      # Database Settings
+      DB_ENGINE: postgres
+      POSTGRES_USER: mealie
+      POSTGRES_PASSWORD: ${MEALIE_DB_PASSWORD}
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: mealie
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_AUTH_STRATEGY: 'NONE'
+      SMTP_FROM_NAME: Mealie
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: zai-org/GLM-5.1
+      OPENAI_AUDIO_MODEL: openai/whisper-large-v3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.mealie.name=mealie
+      - pangolin.public-resources.mealie.full-domain=cookbook.${DOMAIN}
+      - pangolin.public-resources.mealie.protocol=http
+      - pangolin.public-resources.mealie.targets[0].hostname=mealie
+      - pangolin.public-resources.mealie.targets[0].port=9000
+      - pangolin.public-resources.mealie.targets[0].path=/
+      - pangolin.public-resources.mealie.targets[0].method=http  
+
+  postgres:
+    container_name: postgres
+    image: postgres:15.15
+    restart: always
+    networks:
+      - mealie
+    volumes:
+      - mealie-pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${MEALIE_DB_PASSWORD}
+      POSTGRES_USER: mealie
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+
+
+volumes:
+  mealie-data:
+  mealie-pgdata:
+
+networks:
+  pangolin:
+    external: true
+  mealie:
+    driver: bridge

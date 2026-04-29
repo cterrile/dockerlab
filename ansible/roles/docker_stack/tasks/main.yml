@@ -1,0 +1,58 @@
+---
+- name: Load infra config — {{ stack_name }}
+  ansible.builtin.include_vars:
+    file: "{{ stacks_dir }}/{{ stack_name }}/infra.yml"
+    name: stack_infra
+
+- name: Set deploy path — {{ stack_name }}
+  ansible.builtin.set_fact:
+    docker_stack_deploy_path: "{{ stack_infra.deploy_path | default(default_deploy_base ~ '/' ~ stack_name) }}"
+
+- name: Ensure deploy directory exists — {{ stack_name }}
+  ansible.builtin.file:
+    path: "{{ docker_stack_deploy_path }}"
+    state: directory
+    mode: "0750"
+
+- name: Sync stack files to host — {{ stack_name }}
+  ansible.posix.synchronize:
+    src: "{{ stacks_dir }}/{{ stack_name }}/"
+    dest: "{{ docker_stack_deploy_path }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=infra.yml"
+  register: docker_stack_sync_result
+
+- name: Render .env from secrets — {{ stack_name }}
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_stack_deploy_path }}/.env"
+    mode: "0600"
+  when: stack_infra.env_file | default(false)
+  register: docker_stack_env_result
+
+- name: Pull images — {{ stack_name }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} pull"
+    chdir: "{{ docker_stack_deploy_path }}"
+  register: docker_stack_pull_result
+  changed_when: "'Pull complete' in docker_stack_pull_result.stdout or 'Downloaded' in docker_stack_pull_result.stdout"
+
+- name: Deploy stack — {{ stack_name }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
+    chdir: "{{ docker_stack_deploy_path }}"
+  register: docker_stack_deploy_result
+  changed_when: "'Started' in docker_stack_deploy_result.stderr or 'Creating' in docker_stack_deploy_result.stderr"
+
+- name: Verify containers are running — {{ stack_name }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} ps --format json"
+    chdir: "{{ docker_stack_deploy_path }}"
+  register: docker_stack_ps_result
+  changed_when: false
+  failed_when: false
+
+- name: Show running containers — {{ stack_name }}
+  ansible.builtin.debug:
+    msg: "{{ docker_stack_ps_result.stdout_lines | default([]) }}"

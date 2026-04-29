@@ -1,0 +1,6 @@
+stacks_dir: "{{ playbook_dir }}/../../stacks"
+gateway_dir: "{{ playbook_dir }}/../../gateway"
+
+docker_compose_cmd: docker compose
+
+default_deploy_base: /opt/stacks

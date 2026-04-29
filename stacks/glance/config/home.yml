@@ -21,15 +21,6 @@
             - url: https://ishadeed.com/feed.xml
               title: Ahmad Shadeed
 
-        - type: twitch-channels
-          channels:
-            - theprimeagen
-            - j_blow
-            - giantwaffle
-            - cohhcarnage
-            - christitustech
-            - EJ_SA
-
     - size: full
       widgets:
         - type: group
@@ -73,6 +64,10 @@
               name: Apple
             - symbol: MSFT
               name: Microsoft
+            - symbol: NET
+              name: Cloudflare
+            - symbol: AMD
+              name: AMD
 
         - type: releases
           cache: 1d

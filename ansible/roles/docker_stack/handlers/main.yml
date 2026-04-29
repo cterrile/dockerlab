@@ -1,0 +1,6 @@
+---
+- name: Restart stack
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans --force-recreate"
+    chdir: "{{ docker_stack_deploy_path }}"
+  changed_when: true

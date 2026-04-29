@@ -1,0 +1,100 @@
+---
+# Bootstrap a fresh host with Docker and prerequisites.
+# Run once per new machine:
+#   ansible-playbook playbooks/setup-host.yml --limit <hostname>
+
+- name: Bootstrap host
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install prerequisites
+      ansible.builtin.package:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - rsync
+          - gettext-base
+        state: present
+
+    - name: Add Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker apt repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') }}
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/{{ ansible_distribution | lower }}
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker Engine
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Enable and start Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Create deploy user
+      ansible.builtin.user:
+        name: deploy
+        groups: docker
+        append: true
+        shell: /bin/bash
+        create_home: true
+      when: ansible_user != 'deploy'
+
+    - name: Ensure /opt/stacks base directory exists
+      ansible.builtin.file:
+        path: /opt/stacks
+        state: directory
+        owner: root
+        group: docker
+        mode: "0750"
+
+    - name: Configure UFW — allow SSH
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+      when: ansible_os_family == "Debian"
+      failed_when: false
+
+    - name: Configure UFW — enable
+      community.general.ufw:
+        state: enabled
+        policy: deny
+      when: ansible_os_family == "Debian"
+      failed_when: false
+
+    - name: Verify Docker installation
+      ansible.builtin.command: docker info --format '{{ "{{" }}.ServerVersion{{ "}}" }}'
+      register: docker_version
+      changed_when: false
+
+    - name: Show Docker version
+      ansible.builtin.debug:
+        msg: "Docker {{ docker_version.stdout }} installed successfully"
