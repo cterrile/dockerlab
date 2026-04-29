@@ -2,12 +2,13 @@
 - name: Deploy Docker Compose stacks
   hosts: all
   become: true
+  strategy: linear
   vars:
     changed_stacks: "{{ lookup('env', 'CHANGED_STACKS') | default('all', true) }}"
 
   pre_tasks:
     - name: Find all stack infra files
-      find:
+      ansible.builtin.find:
         paths: "{{ stacks_dir }}"
         patterns: "infra.yml"
         recurse: true
@@ -17,7 +18,7 @@
       register: infra_files
 
     - name: Read stack infra configs
-      slurp:
+      ansible.builtin.slurp:
         src: "{{ item.path }}"
       loop: "{{ infra_files.files }}"
       loop_control:
@@ -27,7 +28,7 @@
       register: infra_contents
 
     - name: Build stack-to-host mapping
-      set_fact:
+      ansible.builtin.set_fact:
         all_stacks: >-
           {{
             all_stacks | default({}) | combine({
@@ -40,7 +41,7 @@
       run_once: true
 
     - name: Filter stacks assigned to this host
-      set_fact:
+      ansible.builtin.set_fact:
         my_stacks: >-
           {{
             all_stacks | dict2items
@@ -49,7 +50,7 @@
           }}
 
     - name: Filter to changed stacks only
-      set_fact:
+      ansible.builtin.set_fact:
         deploy_stacks: >-
           {{
             my_stacks if changed_stacks == 'all'
@@ -57,12 +58,12 @@
           }}
 
     - name: Show stacks to deploy
-      debug:
+      ansible.builtin.debug:
         msg: "Deploying stacks on {{ inventory_hostname }}: {{ deploy_stacks | join(', ') | default('(none)') }}"
 
   tasks:
     - name: Deploy each stack
-      include_role:
+      ansible.builtin.include_role:
         name: docker_stack
       loop: "{{ deploy_stacks }}"
       loop_control:

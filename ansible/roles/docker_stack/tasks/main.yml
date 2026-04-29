@@ -1,58 +1,58 @@
 ---
-- name: "{{ stack_name }} | Load infra config"
-  include_vars:
+- name: Load infra config — {{ stack_name }}
+  ansible.builtin.include_vars:
     file: "{{ stacks_dir }}/{{ stack_name }}/infra.yml"
     name: stack_infra
 
-- name: "{{ stack_name }} | Set deploy path"
-  set_fact:
-    _deploy_path: "{{ stack_infra.deploy_path | default(default_deploy_base ~ '/' ~ stack_name) }}"
+- name: Set deploy path — {{ stack_name }}
+  ansible.builtin.set_fact:
+    docker_stack_deploy_path: "{{ stack_infra.deploy_path | default(default_deploy_base ~ '/' ~ stack_name) }}"
 
-- name: "{{ stack_name }} | Ensure deploy directory exists"
-  file:
-    path: "{{ _deploy_path }}"
+- name: Ensure deploy directory exists — {{ stack_name }}
+  ansible.builtin.file:
+    path: "{{ docker_stack_deploy_path }}"
     state: directory
     mode: "0750"
 
-- name: "{{ stack_name }} | Sync stack files to host"
-  synchronize:
+- name: Sync stack files to host — {{ stack_name }}
+  ansible.posix.synchronize:
     src: "{{ stacks_dir }}/{{ stack_name }}/"
-    dest: "{{ _deploy_path }}/"
+    dest: "{{ docker_stack_deploy_path }}/"
     delete: true
     rsync_opts:
       - "--exclude=infra.yml"
-  register: sync_result
+  register: docker_stack_sync_result
 
-- name: "{{ stack_name }} | Render .env from secrets"
-  template:
+- name: Render .env from secrets — {{ stack_name }}
+  ansible.builtin.template:
     src: env.j2
-    dest: "{{ _deploy_path }}/.env"
+    dest: "{{ docker_stack_deploy_path }}/.env"
     mode: "0600"
   when: stack_infra.env_file | default(false)
-  register: env_result
+  register: docker_stack_env_result
 
-- name: "{{ stack_name }} | Pull images"
-  command:
+- name: Pull images — {{ stack_name }}
+  ansible.builtin.command:
     cmd: "{{ docker_compose_cmd }} pull"
-    chdir: "{{ _deploy_path }}"
-  register: pull_result
-  changed_when: "'Pull complete' in pull_result.stdout or 'Downloaded' in pull_result.stdout"
+    chdir: "{{ docker_stack_deploy_path }}"
+  register: docker_stack_pull_result
+  changed_when: "'Pull complete' in docker_stack_pull_result.stdout or 'Downloaded' in docker_stack_pull_result.stdout"
 
-- name: "{{ stack_name }} | Deploy stack"
-  command:
+- name: Deploy stack — {{ stack_name }}
+  ansible.builtin.command:
     cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
-    chdir: "{{ _deploy_path }}"
-  register: deploy_result
-  changed_when: "'Started' in deploy_result.stderr or 'Creating' in deploy_result.stderr"
+    chdir: "{{ docker_stack_deploy_path }}"
+  register: docker_stack_deploy_result
+  changed_when: "'Started' in docker_stack_deploy_result.stderr or 'Creating' in docker_stack_deploy_result.stderr"
 
-- name: "{{ stack_name }} | Verify containers are running"
-  command:
+- name: Verify containers are running — {{ stack_name }}
+  ansible.builtin.command:
     cmd: "{{ docker_compose_cmd }} ps --format json"
-    chdir: "{{ _deploy_path }}"
-  register: ps_result
+    chdir: "{{ docker_stack_deploy_path }}"
+  register: docker_stack_ps_result
   changed_when: false
   failed_when: false
 
-- name: "{{ stack_name }} | Show running containers"
-  debug:
-    msg: "{{ ps_result.stdout_lines | default([]) }}"
+- name: Show running containers — {{ stack_name }}
+  ansible.builtin.debug:
+    msg: "{{ docker_stack_ps_result.stdout_lines | default([]) }}"

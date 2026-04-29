@@ -15,13 +15,13 @@
 
   tasks:
     - name: Ensure deploy directory exists
-      file:
+      ansible.builtin.file:
         path: "{{ gateway_deploy_path }}"
         state: directory
         mode: "0750"
 
     - name: Sync gateway files to host
-      synchronize:
+      ansible.posix.synchronize:
         src: "{{ gateway_dir }}/"
         dest: "{{ gateway_deploy_path }}/"
         delete: true
@@ -32,7 +32,7 @@
       register: sync_result
 
     - name: Render gateway .env
-      copy:
+      ansible.builtin.copy:
         dest: "{{ gateway_deploy_path }}/.env"
         mode: "0600"
         content: |
@@ -41,12 +41,12 @@
           LETSENCRYPT_EMAIL={{ lookup('env', 'LETSENCRYPT_EMAIL') }}
 
     - name: Ensure envsubst is available
-      package:
+      ansible.builtin.package:
         name: gettext-base
         state: present
 
     - name: Render Pangolin config from template
-      shell:
+      ansible.builtin.shell:
         cmd: >
           export DOMAIN="{{ lookup('env', 'DOMAIN') }}"
           PANGOLIN_SECRET="{{ lookup('env', 'PANGOLIN_SECRET') }}";
@@ -56,21 +56,21 @@
       changed_when: true
 
     - name: Pull gateway images
-      command:
+      ansible.builtin.command:
         cmd: "{{ docker_compose_cmd }} pull"
         chdir: "{{ gateway_deploy_path }}"
       register: pull_result
       changed_when: "'Pull complete' in pull_result.stdout or 'Downloaded' in pull_result.stdout"
 
     - name: Deploy gateway stack
-      command:
+      ansible.builtin.command:
         cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
         chdir: "{{ gateway_deploy_path }}"
       register: deploy_result
       changed_when: "'Started' in deploy_result.stderr or 'Creating' in deploy_result.stderr"
 
     - name: Wait for Pangolin health check
-      uri:
+      ansible.builtin.uri:
         url: http://localhost:3001/api/v1/
         method: GET
         status_code: [200, 301, 302]
@@ -81,7 +81,7 @@
       ignore_errors: true
 
     - name: Show health check result
-      debug:
+      ansible.builtin.debug:
         msg: >-
           {{
             'Gateway is healthy (HTTP ' ~ health.status ~ ')'

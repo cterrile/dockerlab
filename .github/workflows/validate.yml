@@ -83,9 +83,13 @@ jobs:
             echo "found=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install ansible-lint
+      - name: Install ansible-lint and dependencies
         if: steps.check.outputs.found == 'true'
         run: pip install ansible-lint
+
+      - name: Install Ansible collections
+        if: steps.check.outputs.found == 'true'
+        run: ansible-galaxy collection install -r ansible/requirements.yml
 
       - name: Run ansible-lint
         if: steps.check.outputs.found == 'true'
