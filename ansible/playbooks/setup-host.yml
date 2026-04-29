@@ -81,14 +81,14 @@
         port: "22"
         proto: tcp
       when: ansible_os_family == "Debian"
-      ignore_errors: true
+      failed_when: false
 
     - name: Configure UFW — enable
       community.general.ufw:
         state: enabled
         policy: deny
       when: ansible_os_family == "Debian"
-      ignore_errors: true
+      failed_when: false
 
     - name: Verify Docker installation
       ansible.builtin.command: docker info --format '{{ "{{" }}.ServerVersion{{ "}}" }}'
