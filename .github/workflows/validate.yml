@@ -73,14 +73,22 @@ jobs:
   lint-ansible:
     name: Lint Ansible
     runs-on: ubuntu-latest
-    if: hashFiles('ansible/playbooks/*.yml') != ''
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for Ansible playbooks
+        id: check
+        run: |
+          if ls ansible/playbooks/*.yml 1>/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install ansible-lint
+        if: steps.check.outputs.found == 'true'
         run: pip install ansible-lint
 
       - name: Run ansible-lint
+        if: steps.check.outputs.found == 'true'
         working-directory: ansible
         run: ansible-lint playbooks/
 
