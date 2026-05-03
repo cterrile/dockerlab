@@ -1,0 +1,47 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes
+    restart: unless-stopped
+    command: gateway run
+    ports:
+      - "8642:8642"
+    volumes:
+      - ~/.hermes:/opt/data
+    networks:
+      - hermes-net
+    # Uncomment to forward specific env vars instead of using .env file:
+    # environment:
+    #   - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    #   - OPENAI_API_KEY=${OPENAI_API_KEY}
+    #   - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+
+  dashboard:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    command: dashboard --host 0.0.0.0 --insecure
+    ports:
+      - "9119:9119"
+    volumes:
+      - ~/.hermes:/opt/data
+    environment:
+      - GATEWAY_HEALTH_URL=http://hermes:8642
+    networks:
+      - hermes-net
+    depends_on:
+      - hermes
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+
+networks:
+  hermes-net:
+    driver: bridge
