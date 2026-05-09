@@ -1,0 +1,15 @@
+host: artemis
+deploy_path: /opt/stacks/infisical
+env_file: true
+secrets:
+  - DOMAIN
+  - INFISICAL_ENCRYPTION_KEY
+  - INFISICAL_AUTH_SECRET
+  - INFISICAL_DB_PASSWORD
+  - SMTP_HOST
+  - SMTP_PORT
+  - SMTP_USER
+  - SMTP_PASSWORD
+  - SMTP_FROM_EMAIL
+docker_volumes: {}
+depends_on_stacks: []
