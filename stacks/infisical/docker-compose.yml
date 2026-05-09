@@ -1,0 +1,79 @@
+services:
+  infisical:
+    image: infisical/infisical:latest
+    container_name: infisical
+    restart: unless-stopped
+    depends_on:
+      infisical-db:
+        condition: service_healthy
+      infisical-redis:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTION_KEY=${INFISICAL_ENCRYPTION_KEY}
+      - AUTH_SECRET=${INFISICAL_AUTH_SECRET}
+      - DB_CONNECTION_URI=postgres://infisical:${INFISICAL_DB_PASSWORD}@infisical-db:5432/infisical
+      - REDIS_URL=redis://infisical-redis:6379
+      - SITE_URL=https://secrets.${DOMAIN}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_EMAIL}
+      - SMTP_FROM_NAME=Infisical
+    networks:
+      - infisical
+      - pangolin
+    ports:
+      - "8080:8084"
+    # labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      # - pangolin.public-resources.infisical.name=infisical
+      # - pangolin.public-resources.infisical.full-domain=secrets.${DOMAIN}
+      # - pangolin.public-resources.infisical.protocol=http
+      # - pangolin.public-resources.infisical.targets[0].hostname=infisical
+      # - pangolin.public-resources.infisical.targets[0].port=8080
+      # - pangolin.public-resources.infisical.targets[0].path=/
+      # - pangolin.public-resources.infisical.targets[0].method=http
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+
+  infisical-db:
+    image: postgres:14-alpine
+    container_name: infisical-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=infisical
+      - POSTGRES_PASSWORD=${INFISICAL_DB_PASSWORD}
+      - POSTGRES_DB=infisical
+    volumes:
+      - infisical-pgdata:/var/lib/postgresql/data
+    networks:
+      - infisical
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infisical"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  infisical-redis:
+    image: redis:7-alpine
+    container_name: infisical-redis
+    restart: unless-stopped
+    volumes:
+      - infisical-redis:/data
+    networks:
+      - infisical
+
+volumes:
+  infisical-pgdata:
+  infisical-redis:
+
+networks:
+  pangolin:
+    external: true
+  infisical:
+    driver: bridge
