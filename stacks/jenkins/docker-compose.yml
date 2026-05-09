@@ -1,0 +1,30 @@
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    restart: unless-stopped
+    privileged: true
+    user: root
+    environment:
+      - JENKINS_EXT_URL=https://jenkins.${DOMAIN}
+    volumes:
+      - jenkins_config:/var/jenkins_home
+#      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - pangolin
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.jenkins.name=jenkins
+      - pangolin.public-resources.jenkins.full-domain=jenkins.${DOMAIN}
+      - pangolin.public-resources.jenkins.protocol=http
+      - pangolin.public-resources.jenkins.targets[0].hostname=jenkins
+      - pangolin.public-resources.jenkins.targets[0].port=8080
+      - pangolin.public-resources.jenkins.targets[0].path=/
+      - pangolin.public-resources.jenkins.targets[0].method=http
+
+networks:
+  pangolin:
+    external: true
+
+volumes:
+  jenkins_config:
