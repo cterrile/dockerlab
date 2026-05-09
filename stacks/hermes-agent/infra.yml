@@ -2,4 +2,9 @@ host: artemis
 deploy_path: /opt/stacks/hermes-agent
 env_file: false
 docker_volumes: {}
+secrets:
+  - TOGETHER_API_KEY
+  - MC_URL
+  - MC_API_KEY
+  - MEALIE_API_KEY
 depends_on_stacks: []
