@@ -28,3 +28,4 @@ networks:
 
 volumes:
   jenkins_config:
+    external: true
