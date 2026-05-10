@@ -75,7 +75,9 @@ services:
 
 volumes:
   mealie-data:
+    external: true
   mealie-pgdata:
+    external: true
 
 networks:
   pangolin:
