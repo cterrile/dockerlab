@@ -27,7 +27,7 @@ services:
       DB_ENGINE: postgres
       POSTGRES_USER: mealie
       POSTGRES_PASSWORD: ${MEALIE_DB_PASSWORD}
-      POSTGRES_SERVER: postgres
+      POSTGRES_SERVER: mealie-db
       POSTGRES_PORT: 5432
       POSTGRES_DB: mealie
       SMTP_HOST: ${SMTP_HOST}
@@ -42,7 +42,7 @@ services:
       OPENAI_MODEL: zai-org/GLM-5.1
       OPENAI_AUDIO_MODEL: openai/whisper-large-v3
     depends_on:
-      postgres:
+      mealie-db:
         condition: service_healthy
     labels:
       # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
@@ -54,7 +54,7 @@ services:
       - pangolin.public-resources.mealie.targets[0].path=/
       - pangolin.public-resources.mealie.targets[0].method=http  
 
-  postgres:
+  mealie-db:
     container_name: postgres
     image: postgres:15.15
     restart: always
