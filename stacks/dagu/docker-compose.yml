@@ -1,0 +1,49 @@
+services:
+  dagu:
+    image: ghcr.io/dagucloud/dagu:latest
+    container_name: dagu
+    restart: unless-stopped
+    user: "0:0"
+    entrypoint: []
+    command: ["dagu", "start-all"]
+    environment:
+      - DAGU_HOST=0.0.0.0
+      - DAGU_PORT=8080
+      - DAGU_DAGS_DIR=/var/lib/dagu/dags
+      - DAGU_AUTH_MODE=basic
+      - DAGU_AUTH_BASIC_USERNAME=${DAGU_ADMIN_USER}
+      - DAGU_AUTH_BASIC_PASSWORD=${DAGU_ADMIN_PASSWORD}
+      - DAGU_TZ=America/Los_Angeles
+      - INFISICAL_URL=${INFISICAL_URL}
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
+    volumes:
+      - dagu-data:/var/lib/dagu
+      - ./dags:/var/lib/dagu/dags:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.ssh:/root/.ssh:ro
+      - ${DOCKERLAB_REPO_PATH:-/opt/dockerlab}:/opt/dockerlab:ro
+    networks:
+      - pangolin
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.dagu.name=dagu
+      - pangolin.public-resources.dagu.full-domain=ops.${DOMAIN}
+      - pangolin.public-resources.dagu.protocol=http
+      - pangolin.public-resources.dagu.targets[0].hostname=dagu
+      - pangolin.public-resources.dagu.targets[0].port=8080
+      - pangolin.public-resources.dagu.targets[0].path=/
+      - pangolin.public-resources.dagu.targets[0].method=http
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "1.0"
+
+volumes:
+  dagu-data:
+
+networks:
+  pangolin:
+    external: true

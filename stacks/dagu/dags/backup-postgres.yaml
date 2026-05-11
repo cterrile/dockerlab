@@ -1,0 +1,52 @@
+description: Nightly Postgres backups for all stacks with databases
+type: graph
+schedule: "0 3 * * *"
+overlap_policy: skip
+timeout_sec: 1800
+
+params:
+  - BACKUP_DIR: /var/lib/dagu/backups/postgres
+  - RETENTION_DAYS: "30"
+
+steps:
+  - id: ensure_backup_dir
+    name: Create backup directory
+    command: mkdir -p ${BACKUP_DIR}
+
+  - id: backup_infisical
+    name: Backup Infisical DB
+    depends: ensure_backup_dir
+    command: |
+      TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+      docker exec infisical-db \
+        pg_dump -U infisical --clean --if-exists infisical \
+        > "${BACKUP_DIR}/infisical_${TIMESTAMP}.sql"
+      echo "Backed up infisical → infisical_${TIMESTAMP}.sql"
+    continue_on:
+      failure: true
+
+  - id: backup_mealie
+    name: Backup Mealie DB
+    depends: ensure_backup_dir
+    command: |
+      TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+      docker exec mealie-db \
+        pg_dump -U mealie --clean --if-exists mealie \
+        > "${BACKUP_DIR}/mealie_${TIMESTAMP}.sql"
+      echo "Backed up mealie → mealie_${TIMESTAMP}.sql"
+    continue_on:
+      failure: true
+
+  - id: prune_old
+    name: Prune backups older than retention period
+    depends: [backup_infisical, backup_mealie]
+    command: |
+      COUNT=$(find ${BACKUP_DIR} -name "*.sql" -mtime +${RETENTION_DAYS} | wc -l)
+      find ${BACKUP_DIR} -name "*.sql" -mtime +${RETENTION_DAYS} -delete
+      echo "Pruned $COUNT backup(s) older than ${RETENTION_DAYS} days"
+
+handler_on:
+  failure:
+    command: echo "[FAILED] Postgres backup pipeline"
+  success:
+    command: echo "[OK] Postgres backups completed"
