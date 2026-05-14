@@ -65,53 +65,38 @@ jobs:
           echo "- **Stacks:** \`${{ steps.changes.outputs.stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
-    name: Deploy via Ansible
+    name: Trigger Dagu Deploy
     needs: detect-changes
     if: needs.detect-changes.outputs.should_deploy == 'true'
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Fetch secrets from Infisical
-        uses: Infisical/secrets-action@v1
-        with:
-          url: ${{ secrets.INFISICAL_URL }}
-          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
-          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-          project-id: ${{ secrets.INFISICAL_PROJECT_ID }}
-          env-slug: prod
-
-      - name: Resolve target hosts
-        id: hosts
+      - name: Trigger deploy-stacks DAG via webhook
         env:
-          CHANGED_STACKS: ${{ needs.detect-changes.outputs.changed_stacks }}
+          DAGU_WEBHOOK_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
+          DAGU_WEBHOOK_TOKEN: ${{ secrets.DAGU_WEBHOOK_TOKEN }}
         run: |
-          source scripts/resolve-changed-stacks.sh
-          HOSTS=$(resolve_hosts "$CHANGED_STACKS")
-          echo "ansible_limit=$HOSTS" >> "$GITHUB_OUTPUT"
-          echo "Resolved hosts: $HOSTS"
+          HTTP_STATUS=$(curl -s -o /tmp/dagu-response.json -w "%{http_code}" \
+            -X POST "${DAGU_WEBHOOK_URL}/api/v1/webhooks/deploy-stacks" \
+            -H "Authorization: Bearer ${DAGU_WEBHOOK_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "commit": "${{ github.sha }}",
+              "ref": "${{ github.ref }}",
+              "stacks": "${{ needs.detect-changes.outputs.changed_stacks }}"
+            }')
 
-      - name: Run Ansible deployment
-        working-directory: ansible
-        env:
-          CHANGED_STACKS: ${{ needs.detect-changes.outputs.changed_stacks }}
-          ANSIBLE_FORCE_COLOR: "true"
-        run: |
-          LIMIT="${{ steps.hosts.outputs.ansible_limit }}"
+          echo "Dagu response (HTTP ${HTTP_STATUS}):"
+          cat /tmp/dagu-response.json
 
-          ARGS=(playbooks/deploy-stacks.yml)
-          if [ "$LIMIT" != "all" ] && [ -n "$LIMIT" ]; then
-            ARGS+=(--limit "$LIMIT")
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "::error::Dagu webhook failed with HTTP ${HTTP_STATUS}"
+            exit 1
           fi
-
-          ansible-playbook "${ARGS[@]}"
 
       - name: Deployment summary
         if: always()
         run: |
-          echo "### Deployment result" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Status:** ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Deploy triggered via Dagu" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Stacks:** \`${{ needs.detect-changes.outputs.changed_stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Hosts:** \`${{ steps.hosts.outputs.ansible_limit }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

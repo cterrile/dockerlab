@@ -11,7 +11,8 @@ services:
       - DAGU_PORT=8090
       - DAGU_DAGS_DIR=/var/lib/dagu/dags
       - DAGU_TZ=America/Los_Angeles
-      - INFISICAL_URL=${INFISICAL_URL}
+      - DAGU_AUTH_MODE=builtin
+      - INFISICAL_API_URL=http://infisical:8080
       - INFISICAL_TOKEN=${INFISICAL_TOKEN}
     volumes:
       - dagu-data:/var/lib/dagu
@@ -23,13 +24,13 @@ services:
       - pangolin
     #labels:
       # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
-      #- pangolin.public-resources.dagu.name=dagu
-      #- pangolin.public-resources.dagu.full-domain=ops.${DOMAIN}
-      #- pangolin.public-resources.dagu.protocol=http
-      #- pangolin.public-resources.dagu.targets[0].hostname=dagu
-      #- pangolin.public-resources.dagu.targets[0].port=8090
-      #- pangolin.public-resources.dagu.targets[0].path=/
-      #- pangolin.public-resources.dagu.targets[0].method=http
+      - pangolin.public-resources.dagu.name=dagu
+      - pangolin.public-resources.dagu.full-domain=ops.${DOMAIN}
+      - pangolin.public-resources.dagu.protocol=http
+      - pangolin.public-resources.dagu.targets[0].hostname=dagu
+      - pangolin.public-resources.dagu.targets[0].port=8090
+      - pangolin.public-resources.dagu.targets[0].path=/
+      - pangolin.public-resources.dagu.targets[0].method=http
     deploy:
       resources:
         limits:
