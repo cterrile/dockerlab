@@ -73,7 +73,7 @@ jobs:
     steps:
       - name: Trigger deploy-stacks DAG via webhook
         env:
-          DAGU_WEBHOOK_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
+          DAGU_WEBHOOK_URL: ${{ env.DAGU_WEBHOOK_URL }}
           DAGU_WEBHOOK_TOKEN: ${{ secrets.DAGU_WEBHOOK_TOKEN }}
         run: |
           HTTP_STATUS=$(curl -s -o /tmp/dagu-response.json -w "%{http_code}" \
