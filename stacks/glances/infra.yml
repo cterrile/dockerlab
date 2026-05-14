@@ -1,0 +1,5 @@
+host: artemis
+deploy_path: /opt/stacks/infisical
+env_file: false
+docker_volumes: {}
+depends_on_stacks: []
