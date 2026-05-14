@@ -22,7 +22,7 @@ services:
       - /home/deployer/dockerlab:/opt/dockerlab:ro
     networks:
       - pangolin
-    #labels:
+    labels:
       # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
       - pangolin.public-resources.dagu.name=dagu
       - pangolin.public-resources.dagu.full-domain=ops.${DOMAIN}
