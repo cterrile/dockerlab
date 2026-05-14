@@ -77,7 +77,7 @@ jobs:
           DAGU_WEBHOOK_TOKEN: ${{ secrets.DAGU_WEBHOOK_TOKEN }}
         run: |
           HTTP_STATUS=$(curl -s -o /tmp/dagu-response.json -w "%{http_code}" \
-            -X POST "${DAGU_WEBHOOK_URL}/api/v1/webhooks/deploy-stacks" \
+            -X POST "${{ env.DAGU_WEBHOOK_URL }}/api/v1/webhooks/deploy-stacks" \
             -H "Authorization: Bearer ${DAGU_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{
