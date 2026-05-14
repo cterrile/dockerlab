@@ -6,8 +6,6 @@ secrets:
   - DAGU_ADMIN_USER
   - DAGU_ADMIN_PASSWORD
   - INFISICAL_URL
-  - INFISICAL_CLIENT_ID
-  - INFISICAL_CLIENT_SECRET
-  - INFISICAL_PROJECT_ID
+  - INFISICAL_TOKEN
 docker_volumes: {}
 depends_on_stacks: []

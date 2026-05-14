@@ -55,7 +55,7 @@ Remote hosts never talk to Infisical directly.
 ```
 Infisical
     │
-    │  infisical run ... -- ansible-playbook ...
+    │  infisical run --token $INFISICAL_TOKEN ... -- ansible-playbook ...
     │  (injects all secrets as env vars into the Ansible process)
     ▼
 Dagu / artemis
@@ -77,8 +77,9 @@ Running containers
 
 **Key points:**
 
-- `infisical run` wraps the entire `ansible-playbook` command, exporting
-  all project secrets as environment variables
+- `infisical run --token $INFISICAL_TOKEN` wraps the entire
+  `ansible-playbook` command, exporting all project secrets as
+  environment variables using token-based authentication
 - Ansible's `lookup('env', ...)` reads those env vars on the control node
   (artemis), not on the remote host
 - The `env.j2` template iterates over each stack's `secrets` list from
@@ -110,7 +111,7 @@ Triggered by GitHub webhook or manual run from the Dagu UI.
 | `detect_changes` | Auto-detect changed stacks via `git diff`, or accept a `STACKS` parameter |
 | `check_skip` | Bail early if nothing changed |
 | `resolve_hosts` | Map changed stacks → Ansible host limit via `resolve-changed-stacks.sh` |
-| `deploy` | `infisical run ... -- ansible-playbook deploy-stacks.yml --limit $HOSTS` |
+| `deploy` | `infisical run --token ... -- ansible-playbook deploy-stacks.yml --limit $HOSTS` |
 
 Manual trigger: pass `STACKS=glance,mealie` to deploy specific stacks without
 relying on git diff detection.
@@ -141,9 +142,7 @@ block the others.
 | `DAGU_ADMIN_USER` | Web UI login username |
 | `DAGU_ADMIN_PASSWORD` | Web UI login password |
 | `INFISICAL_URL` | Infisical instance URL |
-| `INFISICAL_CLIENT_ID` | Infisical machine identity client ID |
-| `INFISICAL_CLIENT_SECRET` | Infisical machine identity client secret |
-| `INFISICAL_PROJECT_ID` | Infisical project ID |
+| `INFISICAL_TOKEN` | Infisical service token for authentication |
 
 ### Container volume mounts
 

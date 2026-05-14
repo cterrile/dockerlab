@@ -12,9 +12,7 @@ services:
       - DAGU_DAGS_DIR=/var/lib/dagu/dags
       - DAGU_TZ=America/Los_Angeles
       - INFISICAL_URL=${INFISICAL_URL}
-      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID}
-      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
-      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
+      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
     volumes:
       - dagu-data:/var/lib/dagu
       - ./dags:/var/lib/dagu/dags:ro

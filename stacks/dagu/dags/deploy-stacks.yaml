@@ -69,9 +69,7 @@ steps:
 
       infisical run \
         --domain "$INFISICAL_URL" \
-        --client-id "$INFISICAL_CLIENT_ID" \
-        --client-secret "$INFISICAL_CLIENT_SECRET" \
-        --projectId "$INFISICAL_PROJECT_ID" \
+        --token "$INFISICAL_TOKEN" \
         --env prod \
         -- \
         ansible-playbook playbooks/deploy-stacks.yml $LIMIT_ARGS
