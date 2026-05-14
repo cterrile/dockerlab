@@ -1,6 +1,5 @@
 description: Nightly Postgres backups for all stacks with databases
 type: graph
-schedule: "0 3 * * *"
 overlap_policy: skip
 timeout_sec: 1800
 

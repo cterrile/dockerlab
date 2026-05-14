@@ -5,7 +5,7 @@ params:
   - STACKS: ""
 
 working_dir: /opt/dockerlab
-dotenv: false
+#dotenv: false
 
 steps:
   - id: pull_latest
