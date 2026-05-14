@@ -141,7 +141,7 @@ block the others.
 | `DOMAIN` | Base domain for Pangolin ingress (`ops.${DOMAIN}`) |
 | `DAGU_ADMIN_USER` | Web UI login username |
 | `DAGU_ADMIN_PASSWORD` | Web UI login password |
-| `INFISICAL_URL` | Infisical instance URL |
+| `INFISICAL_API_URL` | Infisical instance URL |
 | `INFISICAL_TOKEN` | Infisical service token for authentication |
 
 ### Container volume mounts
