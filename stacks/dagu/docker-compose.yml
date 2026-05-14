@@ -1,6 +1,7 @@
 services:
   dagu:
-    image: ghcr.io/dagucloud/dagu:latest
+    build: .
+    image: dagu-deployer:latest
     container_name: dagu
     restart: unless-stopped
     ports:
@@ -34,7 +35,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
           cpus: "1.0"
 
 volumes:
