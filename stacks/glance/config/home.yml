@@ -70,6 +70,8 @@
               name: AMD
             - symbol: PLTR
               name: Palantir
+            - symbol: XYZ
+              name: Block
 
         - type: releases
           cache: 1d
