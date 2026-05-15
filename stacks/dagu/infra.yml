@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/dagu
+deploy_path: /home/deploy/dockerlab/stacks/dagu
 env_file: true
 secrets:
   - DOMAIN

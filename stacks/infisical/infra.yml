@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/infisical
+deploy_path: /home/deploy/dockerlab/stacks/infisical
 env_file: true
 secrets:
   - DOMAIN

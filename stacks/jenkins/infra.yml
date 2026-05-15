@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/jenkins
+deploy_path: /home/deploy/dockerlab/stacks/jenkins
 env_file: true
 secrets:
   - DOMAIN

@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/infisical
+deploy_path: /home/deploy/dockerlab/stacks/glances
 env_file: false
 docker_volumes: {}
 depends_on_stacks: []

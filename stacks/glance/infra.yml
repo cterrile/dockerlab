@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/glance
+deploy_path: /home/deploy/dockerlab/stacks/glance
 env_file: true
 secrets:
   - DOMAIN
