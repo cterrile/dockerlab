@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/uptime
+deploy_path: /home/deploy/dockerlab/stacks/uptime
 env_file: true
 secrets:
   - DOMAIN

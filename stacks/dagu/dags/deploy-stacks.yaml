@@ -4,7 +4,7 @@ type: graph
 params:
   - STACKS: ""
 
-working_dir: /opt/dockerlab
+working_dir: /home/deploy/dockerlab
 #dotenv: false
 
 steps:

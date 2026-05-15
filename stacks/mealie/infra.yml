@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/mealie
+deploy_path: /home/deploy/dockerlab/stacks/mealie
 env_file: true
 secrets:
   - DOMAIN

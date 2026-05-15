@@ -67,11 +67,11 @@
         create_home: true
       when: ansible_user != 'deploy'
 
-    - name: Ensure /opt/stacks base directory exists
+    - name: Ensure deploy base directory exists
       ansible.builtin.file:
-        path: /opt/stacks
+        path: /home/deploy/dockerlab/stacks
         state: directory
-        owner: root
+        owner: deploy
         group: docker
         mode: "0750"
 

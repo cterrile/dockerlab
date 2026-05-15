@@ -151,7 +151,7 @@ block the others.
 | `./dags` → `/var/lib/dagu/dags` (ro) | DAG definitions from the repo |
 | `docker.sock` | Backup jobs exec into Postgres containers |
 | `~/.ssh` (ro) | Ansible SSH access to VPS hosts |
-| `/opt/dockerlab` (ro) | Repo checkout for deploy pipeline |
+| `/home/deploy/dockerlab` | Repo checkout for deploy pipeline |
 | `dagu-data` volume | Run history, logs, scheduler state |
 
 ### GitHub webhook

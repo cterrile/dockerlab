@@ -19,7 +19,7 @@ services:
       - ./dags:/var/lib/dagu/dags:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.ssh:/root/.ssh:ro
-      - /home/deploy/dockerlab:/opt/dockerlab
+      - /home/deploy/dockerlab:/home/deploy/dockerlab
     networks:
       - pangolin
     labels:

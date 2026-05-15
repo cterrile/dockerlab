@@ -1,5 +1,5 @@
 host: artemis
-deploy_path: /opt/stacks/hermes-agent
+deploy_path: /home/deploy/dockerlab/stacks/hermes-agent
 env_file: false
 docker_volumes: {}
 secrets:
