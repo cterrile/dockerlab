@@ -73,6 +73,9 @@
             - symbol: XYZ
               name: Block
 
+        - type: docker-containers
+          hide-by-default: false
+          
         - type: releases
           cache: 1d
           # Without authentication the Github API allows for up to 60 requests per hour. You can create a
