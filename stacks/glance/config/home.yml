@@ -68,6 +68,8 @@
               name: Cloudflare
             - symbol: AMD
               name: AMD
+            - symbol: PLTR
+              name: Palantir
 
         - type: releases
           cache: 1d
@@ -82,3 +84,4 @@
             - radarr/radarr
             - mealie-recipes/mealie
             - plexinc/pms-docker
+            - nous-research/hermes-agent
