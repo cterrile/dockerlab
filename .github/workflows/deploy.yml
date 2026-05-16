@@ -64,9 +64,33 @@ jobs:
           echo "- **Event:** ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Stacks:** \`${{ steps.changes.outputs.stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
 
+  resolve-stacks:
+    name: Resolve Stack List
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      stack_list: ${{ steps.resolve.outputs.stack_list }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Expand stack list
+        id: resolve
+        run: |
+          STACKS="${{ needs.detect-changes.outputs.changed_stacks }}"
+
+          if [ "$STACKS" = "all" ]; then
+            STACKS=$(ls -d stacks/*/infra.yml 2>/dev/null \
+              | xargs -I{} dirname {} | xargs -I{} basename {} \
+              | sort | paste -sd,)
+          fi
+
+          echo "stack_list=$STACKS" >> "$GITHUB_OUTPUT"
+          echo "Resolved stacks: $STACKS"
+
   deploy:
     name: Trigger Dagu Deploy
-    needs: detect-changes
+    needs: [detect-changes, resolve-stacks]
     if: needs.detect-changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     environment: production
@@ -83,7 +107,7 @@ jobs:
             -d '{
               "commit": "${{ github.sha }}",
               "ref": "${{ github.ref }}",
-              "stacks": "${{ needs.detect-changes.outputs.changed_stacks }}"
+              "stacks": "${{ needs.resolve-stacks.outputs.stack_list }}"
             }')
 
           echo "Dagu response (HTTP ${HTTP_STATUS}):"
@@ -98,5 +122,5 @@ jobs:
         if: always()
         run: |
           echo "### Deploy triggered via Dagu" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Stacks:** \`${{ needs.detect-changes.outputs.changed_stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Stacks:** \`${{ needs.resolve-stacks.outputs.stack_list }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

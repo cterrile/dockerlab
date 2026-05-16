@@ -1,64 +1,64 @@
-description: Deploy changed Docker Compose stacks via Ansible
-type: graph
+description: Deploy Docker Compose stacks via Ansible
 
 params:
   - STACKS: ""
 
 working_dir: /home/deploy/dockerlab
-#dotenv: false
 
 steps:
-  - id: pull_latest
-    name: Pull latest from repo
+  - name: Pull latest from repo
     command: git pull --ff-only origin main
 
-  - id: detect_changes
-    name: Detect changed stacks
-    depends: pull_latest
+  - name: Build stack list
     command: |
-      if [ -n "${STACKS}" ]; then
-        echo "${STACKS}"
-        exit 0
-      fi
-
-      CHANGED=$(git diff --name-only HEAD~1 HEAD -- stacks/ \
-        | cut -d'/' -f2 | sort -u | paste -sd,)
-
-      ANSIBLE_CHANGED=$(git diff --name-only HEAD~1 HEAD -- ansible/ | head -1)
-
-      if [ -n "$ANSIBLE_CHANGED" ]; then
-        echo "all"
-      elif [ -n "$CHANGED" ]; then
-        echo "$CHANGED"
-      else
-        echo "none"
-      fi
-    output: CHANGED_STACKS
-
-  - id: check_skip
-    name: Check if deploy is needed
-    depends: detect_changes
-    command: |
-      if [ "$CHANGED_STACKS" = "none" ]; then
-        echo "No stack or ansible changes detected — skipping."
+      if [ -z "${STACKS}" ]; then
+        echo "ERROR: STACKS parameter is required"
         exit 1
       fi
-      echo "Deploying: $CHANGED_STACKS"
-    preconditions:
-      - condition: "'$CHANGED_STACKS' != 'none'"
-        expected: "true"
 
-  - id: resolve_hosts
-    name: Resolve target hosts
-    depends: check_skip
+      # Convert comma-separated list to JSON array
+      echo "${STACKS}" | tr ',' '\n' | sed 's/^ *//;s/ *$//' \
+        | awk 'NF' | jq -R . | jq -s .
+    output: STACK_LIST
+
+  - call: deploy-stack
+    parallel:
+      items: ${STACK_LIST}
+      max_concurrent: 1
+    params: "STACK=${ITEM}"
+
+handler_on:
+  failure:
+    command: echo "[FAILED] Deploy pipeline — stacks=${STACKS}"
+  success:
+    command: echo "[OK] Deployed stacks=${STACKS}"
+
+---
+
+name: deploy-stack
+description: Deploy a single stack
+
+params:
+  - STACK: ""
+
+working_dir: /home/deploy/dockerlab
+
+steps:
+  - name: Validate stack directory
+    command: |
+      if [ ! -d "stacks/${STACK}" ]; then
+        echo "ERROR: stacks/${STACK} does not exist"
+        exit 1
+      fi
+      echo "Deploying stack: ${STACK}"
+
+  - name: Resolve target host
     command: |
       source scripts/resolve-changed-stacks.sh
-      resolve_hosts "$CHANGED_STACKS"
+      resolve_host "${STACK}"
     output: ANSIBLE_LIMIT
 
-  - id: deploy
-    name: Run Ansible deployment
-    depends: resolve_hosts
+  - name: Run Ansible deployment
     command: |
       LIMIT_ARGS=""
       if [ "$ANSIBLE_LIMIT" != "all" ] && [ -n "$ANSIBLE_LIMIT" ]; then
@@ -75,13 +75,7 @@ steps:
         ansible-playbook playbooks/deploy-stacks.yml $LIMIT_ARGS
     env:
       - ANSIBLE_FORCE_COLOR: "true"
-      - CHANGED_STACKS: "${CHANGED_STACKS}"
+      - DEPLOY_STACK: "${STACK}"
     retry_policy:
       limit: 1
       interval_sec: 30
-
-handler_on:
-  failure:
-    command: echo "[FAILED] Deploy pipeline — stacks=${CHANGED_STACKS} hosts=${ANSIBLE_LIMIT}"
-  success:
-    command: echo "[OK] Deployed stacks=${CHANGED_STACKS} to hosts=${ANSIBLE_LIMIT}"
