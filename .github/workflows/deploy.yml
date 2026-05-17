@@ -137,8 +137,7 @@ jobs:
       - name: Poll DAG run until completion
         env:
           DAGU_BASE_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
-          DAGU_API_USER: ${{ secrets.DAGU_API_USER }}
-          DAGU_API_PASSWORD: ${{ secrets.DAGU_API_PASSWORD }}
+          DAGU_API_KEY: ${{ secrets.DAGU_API_KEY }}
           DAG_NAME: ${{ steps.trigger.outputs.dag_name }}
           DAG_RUN_ID: ${{ steps.trigger.outputs.dag_run_id }}
         run: |
@@ -154,7 +153,7 @@ jobs:
             sleep "$POLL_INTERVAL"
 
             RESPONSE=$(curl -sf \
-              -u "${DAGU_API_USER}:${DAGU_API_PASSWORD}" \
+              -H "Authorization: Bearer ${DAGU_API_KEY}" \
               "${DAGU_BASE_URL}/api/v1/dag-runs/${DAG_NAME}/${DAG_RUN_ID}" \
               2>/dev/null) || {
               echo "::warning::Poll $POLL_COUNT — API request failed, retrying..."

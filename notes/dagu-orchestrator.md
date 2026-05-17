@@ -216,10 +216,10 @@ extracts `.stacks` from it with `jq`.
 
 ```
 GET https://ops.${DOMAIN}/api/v1/dag-runs/<dagName>/<dagRunId>
-Authorization: Basic <DAGU_API_USER:DAGU_API_PASSWORD>
+Authorization: Bearer <DAGU_API_KEY>
 ```
 
-Polls every 15s until `statusLabel` is terminal (max ~25 min).
+Polls every 15–20s until `statusLabel` is terminal (max ~25 min).
 
 ### GitHub Actions secrets required
 
@@ -227,5 +227,4 @@ Polls every 15s until `statusLabel` is terminal (max ~25 min).
 |--------|-------------|
 | `DAGU_WEBHOOK_URL` | Dagu base URL (e.g. `https://ops.example.com`) |
 | `DAGU_WEBHOOK_TOKEN` | Webhook bearer token (`dagu_wh_...`) for triggering |
-| `DAGU_API_USER` | Dagu admin username for API polling |
-| `DAGU_API_PASSWORD` | Dagu admin password for API polling |
+| `DAGU_API_KEY` | Dagu API key (view-only is sufficient) for status polling |
