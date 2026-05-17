@@ -142,7 +142,7 @@ jobs:
           DAG_RUN_ID: ${{ steps.trigger.outputs.dag_run_id }}
         run: |
           POLL_INTERVAL=20
-          MAX_POLLS=100
+          MAX_POLLS=20
           POLL_COUNT=0
 
           echo "Polling DAG run: ${DAG_NAME} / ${DAG_RUN_ID}"
@@ -160,8 +160,8 @@ jobs:
               continue
             }
 
-            STATUS_LABEL=$(echo "$RESPONSE" | jq -r '.statusLabel // empty')
-            STATUS_CODE=$(echo "$RESPONSE" | jq -r '.status // empty')
+            STATUS_LABEL=$(echo "$RESPONSE" | jq -r '.dagRunDetails.statusLabel // empty')
+            STATUS_CODE=$(echo "$RESPONSE" | jq -r '.dagRunDetails.status // empty')
 
             echo "Poll $POLL_COUNT — status: $STATUS_LABEL ($STATUS_CODE)"
 
