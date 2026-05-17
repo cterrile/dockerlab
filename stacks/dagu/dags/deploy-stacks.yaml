@@ -6,18 +6,31 @@ params:
 working_dir: /home/deploy/dockerlab
 
 steps:
+  - name: Resolve stacks
+    command: |
+      # Prefer explicit STACKS param (manual UI trigger),
+      # fall back to WEBHOOK_PAYLOAD (GitHub webhook trigger)
+      if [ -n "${STACKS}" ]; then
+        echo "${STACKS}"
+      elif [ -n "${WEBHOOK_PAYLOAD}" ]; then
+        echo "${WEBHOOK_PAYLOAD}" | jq -r '.stacks // empty'
+      else
+        echo "ERROR: No stacks provided via param or webhook payload" >&2
+        exit 1
+      fi
+    output: RESOLVED_STACKS
+
   - name: Pull latest from repo
     command: git pull --ff-only origin main
 
   - name: Build stack list
     command: |
-      if [ -z "${STACKS}" ]; then
-        echo "ERROR: STACKS parameter is required"
+      if [ -z "${RESOLVED_STACKS}" ]; then
+        echo "ERROR: RESOLVED_STACKS is empty" >&2
         exit 1
       fi
 
-      # Convert comma-separated list to JSON array
-      echo "${STACKS}" | tr ',' '\n' | sed 's/^ *//;s/ *$//' \
+      echo "${RESOLVED_STACKS}" | tr ',' '\n' | sed 's/^ *//;s/ *$//' \
         | awk 'NF' | jq -R . | jq -s .
     output: STACK_LIST
 
@@ -29,9 +42,9 @@ steps:
 
 handler_on:
   failure:
-    command: echo "[FAILED] Deploy pipeline — stacks=${STACKS}"
+    command: echo "[FAILED] Deploy pipeline — stacks=${RESOLVED_STACKS}"
   success:
-    command: echo "[OK] Deployed stacks=${STACKS}"
+    command: echo "[OK] Deployed stacks=${RESOLVED_STACKS}"
 
 ---
 

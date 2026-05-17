@@ -89,25 +89,29 @@ jobs:
           echo "Resolved stacks: $STACKS"
 
   deploy:
-    name: Trigger Dagu Deploy
+    name: Deploy via Dagu
     needs: [detect-changes, resolve-stacks]
     if: needs.detect-changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: production
     steps:
       - name: Trigger deploy-stacks DAG via webhook
+        id: trigger
         env:
-          DAGU_WEBHOOK_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
+          DAGU_BASE_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
           DAGU_WEBHOOK_TOKEN: ${{ secrets.DAGU_WEBHOOK_TOKEN }}
         run: |
           HTTP_STATUS=$(curl -s -o /tmp/dagu-response.json -w "%{http_code}" \
-            -X POST "${DAGU_WEBHOOK_URL}/api/v1/webhooks/deploy-stacks" \
+            -X POST "${DAGU_BASE_URL}/api/v1/webhooks/deploy-stacks" \
             -H "Authorization: Bearer ${DAGU_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{
-              "commit": "${{ github.sha }}",
-              "ref": "${{ github.ref }}",
-              "stacks": "${{ needs.resolve-stacks.outputs.stack_list }}"
+              "payload": {
+                "commit": "${{ github.sha }}",
+                "ref": "${{ github.ref }}",
+                "stacks": "${{ needs.resolve-stacks.outputs.stack_list }}"
+              }
             }')
 
           echo "Dagu response (HTTP ${HTTP_STATUS}):"
@@ -118,9 +122,80 @@ jobs:
             exit 1
           fi
 
+          DAG_RUN_ID=$(jq -r '.dagRunId' /tmp/dagu-response.json)
+          DAG_NAME=$(jq -r '.dagName' /tmp/dagu-response.json)
+
+          if [ -z "$DAG_RUN_ID" ] || [ "$DAG_RUN_ID" = "null" ]; then
+            echo "::error::No dagRunId in webhook response"
+            exit 1
+          fi
+
+          echo "dag_run_id=$DAG_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "dag_name=$DAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Triggered DAG run: $DAG_NAME / $DAG_RUN_ID"
+
+      - name: Poll DAG run until completion
+        env:
+          DAGU_BASE_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
+          DAGU_API_USER: ${{ secrets.DAGU_API_USER }}
+          DAGU_API_PASSWORD: ${{ secrets.DAGU_API_PASSWORD }}
+          DAG_NAME: ${{ steps.trigger.outputs.dag_name }}
+          DAG_RUN_ID: ${{ steps.trigger.outputs.dag_run_id }}
+        run: |
+          POLL_INTERVAL=20
+          MAX_POLLS=100
+          POLL_COUNT=0
+
+          echo "Polling DAG run: ${DAG_NAME} / ${DAG_RUN_ID}"
+          echo "Poll interval: ${POLL_INTERVAL}s, max polls: ${MAX_POLLS}"
+
+          while [ "$POLL_COUNT" -lt "$MAX_POLLS" ]; do
+            POLL_COUNT=$((POLL_COUNT + 1))
+            sleep "$POLL_INTERVAL"
+
+            RESPONSE=$(curl -sf \
+              -u "${DAGU_API_USER}:${DAGU_API_PASSWORD}" \
+              "${DAGU_BASE_URL}/api/v1/dag-runs/${DAG_NAME}/${DAG_RUN_ID}" \
+              2>/dev/null) || {
+              echo "::warning::Poll $POLL_COUNT — API request failed, retrying..."
+              continue
+            }
+
+            STATUS_LABEL=$(echo "$RESPONSE" | jq -r '.statusLabel // empty')
+            STATUS_CODE=$(echo "$RESPONSE" | jq -r '.status // empty')
+
+            echo "Poll $POLL_COUNT — status: $STATUS_LABEL ($STATUS_CODE)"
+
+            case "$STATUS_LABEL" in
+              succeeded)
+                echo "DAG run completed successfully"
+                exit 0
+                ;;
+              failed|aborted|rejected)
+                echo "::error::DAG run finished with status: $STATUS_LABEL"
+                exit 1
+                ;;
+              partially_succeeded)
+                echo "::warning::DAG run partially succeeded"
+                exit 1
+                ;;
+              running|queued|not_started|waiting)
+                continue
+                ;;
+              *)
+                echo "::warning::Unknown status: $STATUS_LABEL"
+                continue
+                ;;
+            esac
+          done
+
+          echo "::error::Timed out waiting for DAG run to complete after $((MAX_POLLS * POLL_INTERVAL))s"
+          exit 1
+
       - name: Deployment summary
         if: always()
         run: |
-          echo "### Deploy triggered via Dagu" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Deploy via Dagu" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Stacks:** \`${{ needs.resolve-stacks.outputs.stack_list }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **DAG Run:** \`${{ steps.trigger.outputs.dag_name }} / ${{ steps.trigger.outputs.dag_run_id }}\`" >> "$GITHUB_STEP_SUMMARY"

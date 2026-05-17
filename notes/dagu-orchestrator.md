@@ -31,10 +31,10 @@ for stack deployment and backup orchestration.
 │                      │          │                             │
 │  • lint compose      │          │  • detect changed stacks    │
 │  • validate infra.yml│          │  • resolve "all" → list     │
-│  • ansible-lint      │          │  • single Dagu webhook with │
-│                      │          │    comma-separated stacks   │
+│  • ansible-lint      │          │  • trigger Dagu webhook     │
+│                      │          │  • poll until completion    │
 └──────────────────────┘          └─────────────┬──────────────┘
-                                                │ single webhook
+                                                │ webhook + poll
                                                 ▼
                                   ┌────────────────────────────┐
                                   │   Dagu (on artemis)        │
@@ -119,14 +119,20 @@ Running containers
 ### deploy-stacks.yaml
 
 Triggered by a single GitHub webhook or manual run from the Dagu UI.
-Receives a `STACKS` parameter (comma-separated stack names).
+
+**Input sources (checked in order):**
+
+1. `STACKS` param — for manual triggers from the Dagu UI
+2. `WEBHOOK_PAYLOAD` env var — set automatically by Dagu when triggered via
+   webhook; the DAG extracts `.stacks` from the JSON payload
 
 **Parent DAG steps:**
 
 | Step | Description |
 |------|-------------|
+| Resolve stacks | Extract stacks from param or webhook payload |
 | Pull latest | `git pull` the repo to pick up latest stack definitions |
-| Build stack list | Convert comma-separated `STACKS` into a JSON array |
+| Build stack list | Convert comma-separated stacks into a JSON array |
 | Iterate | Call `deploy-stack` sub-DAG for each stack via `parallel` (sequential by default) |
 
 **`deploy-stack` sub-DAG steps (runs once per stack):**
@@ -138,8 +144,9 @@ Receives a `STACKS` parameter (comma-separated stack names).
 | Deploy | `infisical run --token ... -- ansible-playbook deploy-stacks.yml --limit $HOST` |
 
 GitHub Actions detects changed stacks, resolves "all" to the concrete list,
-and sends a single webhook with the comma-separated list. Dagu iterates
-internally.
+sends a single webhook, then **polls the Dagu API** until the DAG run
+succeeds or fails. The workflow exit status reflects the actual deployment
+outcome.
 
 Manual trigger: pass `STACKS=glance` (or `STACKS=glance,mealie`) from the
 Dagu UI.
@@ -182,17 +189,43 @@ block the others.
 | `/home/deploy/dockerlab` | Repo checkout for deploy pipeline |
 | `dagu-data` volume | Run history, logs, scheduler state |
 
-### GitHub webhook
+### GitHub Actions integration
 
-GitHub Actions sends a single webhook with all changed stacks:
+The deploy workflow triggers a Dagu webhook and polls until the DAG run
+reaches a terminal status (`succeeded`, `failed`, `aborted`, etc.).
+
+**Webhook trigger:**
 
 ```
 POST https://ops.${DOMAIN}/api/v1/webhooks/deploy-stacks
-Content-Type: application/json
+Authorization: Bearer <DAGU_WEBHOOK_TOKEN>
 
-{ "stacks": "glance,mealie", "commit": "<sha>", "ref": "refs/heads/main" }
+{
+  "payload": {
+    "stacks": "glance,mealie",
+    "commit": "<sha>",
+    "ref": "refs/heads/main"
+  }
+}
 ```
 
-The `stacks` field maps to the DAG's `STACKS` parameter (comma-separated).
-Dagu iterates through the list internally using the `parallel` + `call`
-pattern.
+Dagu sets the `payload` object as the `WEBHOOK_PAYLOAD` env var. The DAG
+extracts `.stacks` from it with `jq`.
+
+**Status polling:**
+
+```
+GET https://ops.${DOMAIN}/api/v1/dag-runs/<dagName>/<dagRunId>
+Authorization: Basic <DAGU_API_USER:DAGU_API_PASSWORD>
+```
+
+Polls every 15s until `statusLabel` is terminal (max ~25 min).
+
+### GitHub Actions secrets required
+
+| Secret | Description |
+|--------|-------------|
+| `DAGU_WEBHOOK_URL` | Dagu base URL (e.g. `https://ops.example.com`) |
+| `DAGU_WEBHOOK_TOKEN` | Webhook bearer token (`dagu_wh_...`) for triggering |
+| `DAGU_API_USER` | Dagu admin username for API polling |
+| `DAGU_API_PASSWORD` | Dagu admin password for API polling |
