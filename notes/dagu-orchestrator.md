@@ -23,26 +23,41 @@ for stack deployment and backup orchestration.
 │                        GitHub Repo                          │
 │                    (dockerlab, main branch)                  │
 └──────────┬──────────────────────────────────┬───────────────┘
-           │ pull request                     │ push / webhook
+           │ pull request                     │ push to main
            ▼                                  ▼
 ┌─────────────────────┐          ┌────────────────────────────┐
-│  GitHub Actions CI   │          │   Dagu (on artemis)        │
-│  (hosted runner)     │          │   ops.${DOMAIN}            │
-│                      │          │                            │
-│  • lint compose      │          │  • detect changed stacks   │
-│  • validate infra.yml│          │  • fetch secrets via       │
-│  • ansible-lint      │          │    Infisical CLI           │
-│                      │          │  • run ansible-playbook    │
-│                      │          │  • nightly DB backups      │
-└──────────────────────┘          └─────────┬──────────────────┘
-                                            │
-                          ┌─────────────────┼──────────────────┐
-                          │ SSH             │ local             │ SSH
-                          ▼                 ▼                   ▼
-                   ┌────────────┐   ┌────────────┐   ┌────────────────┐
-                   │  VPS Host  │   │  artemis   │   │  Future Host   │
-                   │  "hermes"  │   │ (home net) │   │                │
-                   └────────────┘   └────────────┘   └────────────────┘
+│  GitHub Actions CI   │          │  GitHub Actions Deploy      │
+│  (hosted runner)     │          │  (hosted runner)            │
+│                      │          │                             │
+│  • lint compose      │          │  • detect changed stacks    │
+│  • validate infra.yml│          │  • resolve "all" → list     │
+│  • ansible-lint      │          │  • trigger Dagu webhook     │
+│                      │          │  • poll until completion    │
+└──────────────────────┘          └─────────────┬──────────────┘
+                                                │ webhook + poll
+                                                ▼
+                                  ┌────────────────────────────┐
+                                  │   Dagu (on artemis)        │
+                                  │   ops.${DOMAIN}            │
+                                  │                            │
+                                  │  • git pull                │
+                                  │  • iterate stacks via      │
+                                  │    parallel + sub-DAG      │
+                                  │  • per stack:              │
+                                  │    - resolve host          │
+                                  │    - fetch secrets via     │
+                                  │      Infisical CLI         │
+                                  │    - run ansible-playbook  │
+                                  │  • nightly DB backups      │
+                                  └─────────────┬──────────────┘
+                                                │
+                          ┌─────────────────────┼──────────────────┐
+                          │ SSH                 │ local             │ SSH
+                          ▼                     ▼                   ▼
+                   ┌────────────┐       ┌────────────┐   ┌────────────────┐
+                   │  VPS Host  │       │  artemis   │   │  Future Host   │
+                   │  "hermes"  │       │ (home net) │   │                │
+                   └────────────┘       └────────────┘   └────────────────┘
 ```
 
 ---
@@ -103,18 +118,38 @@ Running containers
 
 ### deploy-stacks.yaml
 
-Triggered by GitHub webhook or manual run from the Dagu UI.
+Triggered by a single GitHub webhook or manual run from the Dagu UI.
+
+**Input sources (checked in order):**
+
+1. `STACKS` param — for manual triggers from the Dagu UI
+2. `WEBHOOK_PAYLOAD` env var — set automatically by Dagu when triggered via
+   webhook; the DAG extracts `.stacks` from the JSON payload
+
+**Parent DAG steps:**
 
 | Step | Description |
 |------|-------------|
-| `pull_latest` | `git pull` the repo to pick up latest stack definitions |
-| `detect_changes` | Auto-detect changed stacks via `git diff`, or accept a `STACKS` parameter |
-| `check_skip` | Bail early if nothing changed |
-| `resolve_hosts` | Map changed stacks → Ansible host limit via `resolve-changed-stacks.sh` |
-| `deploy` | `infisical run --token ... -- ansible-playbook deploy-stacks.yml --limit $HOSTS` |
+| Resolve stacks | Extract stacks from param or webhook payload |
+| Pull latest | `git pull` the repo to pick up latest stack definitions |
+| Build stack list | Convert comma-separated stacks into a JSON array |
+| Iterate | Call `deploy-stack` sub-DAG for each stack via `parallel` (sequential by default) |
 
-Manual trigger: pass `STACKS=glance,mealie` to deploy specific stacks without
-relying on git diff detection.
+**`deploy-stack` sub-DAG steps (runs once per stack):**
+
+| Step | Description |
+|------|-------------|
+| Validate | Verify the stack directory exists |
+| Resolve host | Look up the target Ansible host from `stacks/<STACK>/infra.yml` |
+| Deploy | `infisical run --token ... -- ansible-playbook deploy-stacks.yml --limit $HOST` |
+
+GitHub Actions detects changed stacks, resolves "all" to the concrete list,
+sends a single webhook, then **polls the Dagu API** until the DAG run
+succeeds or fails. The workflow exit status reflects the actual deployment
+outcome.
+
+Manual trigger: pass `STACKS=glance` (or `STACKS=glance,mealie`) from the
+Dagu UI.
 
 ### backup-postgres.yaml
 
@@ -154,12 +189,42 @@ block the others.
 | `/home/deploy/dockerlab` | Repo checkout for deploy pipeline |
 | `dagu-data` volume | Run history, logs, scheduler state |
 
-### GitHub webhook
+### GitHub Actions integration
 
-Point a GitHub push webhook at:
+The deploy workflow triggers a Dagu webhook and polls until the DAG run
+reaches a terminal status (`succeeded`, `failed`, `aborted`, etc.).
+
+**Webhook trigger:**
 
 ```
-POST https://ops.${DOMAIN}/api/v1/dags/deploy-stacks/start
+POST https://ops.${DOMAIN}/api/v1/webhooks/deploy-stacks
+Authorization: Bearer <DAGU_WEBHOOK_TOKEN>
+
+{
+  "payload": {
+    "stacks": "glance,mealie",
+    "commit": "<sha>",
+    "ref": "refs/heads/main"
+  }
+}
 ```
 
-This triggers the deploy pipeline on every push to main.
+Dagu sets the `payload` object as the `WEBHOOK_PAYLOAD` env var. The DAG
+extracts `.stacks` from it with `jq`.
+
+**Status polling:**
+
+```
+GET https://ops.${DOMAIN}/api/v1/dag-runs/<dagName>/<dagRunId>
+Authorization: Bearer <DAGU_API_KEY>
+```
+
+Polls every 15–20s until `statusLabel` is terminal (max ~25 min).
+
+### GitHub Actions secrets required
+
+| Secret | Description |
+|--------|-------------|
+| `DAGU_WEBHOOK_URL` | Dagu base URL (e.g. `https://ops.example.com`) |
+| `DAGU_WEBHOOK_TOKEN` | Webhook bearer token (`dagu_wh_...`) for triggering |
+| `DAGU_API_KEY` | Dagu API key (view-only is sufficient) for status polling |
