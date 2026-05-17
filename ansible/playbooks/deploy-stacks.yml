@@ -22,4 +22,4 @@
       ansible.builtin.include_role:
         name: docker_stack
       vars:
-        stack_name: "{{ deploy_stack }}"
+        docker_stack_name: "{{ deploy_stack }}"
