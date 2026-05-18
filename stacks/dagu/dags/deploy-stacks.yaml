@@ -3,8 +3,6 @@ description: Deploy Docker Compose stacks via Ansible
 params:
   - STACKS: ""
 
-working_dir: /home/deploy/dockerlab
-
 steps:
   - name: Resolve stacks
     command: |
@@ -20,8 +18,25 @@ steps:
       fi
     output: RESOLVED_STACKS
 
-  - name: Pull latest from repo
-    command: git pull --ff-only origin main
+  - name: Setup SSH
+    command: |
+      if [ -z "${SSH_PRIVATE_KEY}" ]; then
+        echo "ERROR: SSH_PRIVATE_KEY env var is not set" >&2
+        exit 1
+      fi
+      mkdir -p /root/.ssh && chmod 700 /root/.ssh
+      printf '%s\n' "${SSH_PRIVATE_KEY}" > /root/.ssh/id_ed25519
+      chmod 600 /root/.ssh/id_ed25519
+      ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts 2>/dev/null
+
+  - name: Clone repo
+    command: |
+      if [ -z "${REPO_URL}" ]; then
+        echo "ERROR: REPO_URL env var is not set" >&2
+        exit 1
+      fi
+      rm -rf /workspace/dockerlab
+      git clone --depth 1 --branch main "${REPO_URL}" /workspace/dockerlab
 
   - name: Build stack list
     command: |
@@ -54,7 +69,7 @@ description: Deploy a single stack
 params:
   - STACK: ""
 
-working_dir: /home/deploy/dockerlab
+working_dir: /workspace/dockerlab
 
 steps:
   - name: Validate stack directory

@@ -14,12 +14,11 @@ services:
       - DAGU_AUTH_MODE=builtin
       - INFISICAL_API_URL=http://infisical:8080
       - INFISICAL_TOKEN=${INFISICAL_TOKEN}
+      - REPO_URL=${REPO_URL}
     volumes:
       - dagu-data:/var/lib/dagu
       - ./dags:/var/lib/dagu/dags:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ~/.ssh:/root/.ssh:ro
-      - /home/deploy/dockerlab:/home/deploy/dockerlab
+      - workspace:/workspace
     networks:
       - pangolin
     labels:
@@ -39,6 +38,7 @@ services:
 
 volumes:
   dagu-data:
+  workspace:
 
 networks:
   pangolin:

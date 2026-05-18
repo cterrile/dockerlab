@@ -12,7 +12,7 @@ for stack deployment and backup orchestration.
 - Built-in cron scheduler for backup jobs
 - Web UI with visual DAG graphs, run history, and real-time logs
 - REST API for external triggers (GitHub webhooks)
-- Docker socket support for local container management
+- Ephemeral per-run workspace with fresh git clone — no host mount ownership issues
 
 ---
 
@@ -40,7 +40,7 @@ for stack deployment and backup orchestration.
                                   │   Dagu (on artemis)        │
                                   │   ops.${DOMAIN}            │
                                   │                            │
-                                  │  • git pull                │
+                                  │  • git clone (fresh)       │
                                   │  • iterate stacks via      │
                                   │    parallel + sub-DAG      │
                                   │  • per stack:              │
@@ -131,7 +131,7 @@ Triggered by a single GitHub webhook or manual run from the Dagu UI.
 | Step | Description |
 |------|-------------|
 | Resolve stacks | Extract stacks from param or webhook payload |
-| Pull latest | `git pull` the repo to pick up latest stack definitions |
+| Clone repo | `git clone --depth 1` into `/workspace/dockerlab` (replaces any prior clone) |
 | Build stack list | Convert comma-separated stacks into a JSON array |
 | Iterate | Call `deploy-stack` sub-DAG for each stack via `parallel` (sequential by default) |
 
@@ -176,18 +176,27 @@ block the others.
 | `DOMAIN` | Base domain for Pangolin ingress (`ops.${DOMAIN}`) |
 | `DAGU_ADMIN_USER` | Web UI login username |
 | `DAGU_ADMIN_PASSWORD` | Web UI login password |
-| `INFISICAL_API_URL` | Infisical instance URL |
+| `INFISICAL_URL` | Infisical instance URL |
 | `INFISICAL_TOKEN` | Infisical service token for authentication |
+| `REPO_URL` | Git clone URL for the dockerlab repo (SSH or HTTPS) |
+| `SSH_PRIVATE_KEY` | Full PEM content of the ed25519 private key; written to `/root/.ssh/id_ed25519` at runtime |
 
 ### Container volume mounts
 
 | Mount | Purpose |
 |-------|---------|
 | `./dags` → `/var/lib/dagu/dags` (ro) | DAG definitions from the repo |
-| `docker.sock` | Backup jobs exec into Postgres containers |
-| `~/.ssh` (ro) | Ansible SSH access to VPS hosts |
-| `/home/deploy/dockerlab` | Repo checkout for deploy pipeline |
 | `dagu-data` volume | Run history, logs, scheduler state |
+| `workspace` volume | Ephemeral repo clone per DAG run (`/workspace/dockerlab`) |
+
+Each deploy run clones a fresh copy of the repo into the `workspace` volume,
+so there are no ownership conflicts and no stale state from previous runs.
+
+The SSH private key is not mounted from the host. Instead, the deploy DAG
+reads `SSH_PRIVATE_KEY` from the Infisical-injected environment and writes it
+to `/root/.ssh/id_ed25519` at the start of each run. `ssh-keyscan` populates
+`known_hosts` for github.com automatically. Ansible uses the same key file at
+`/root/.ssh/id_ed25519` for VPS host SSH connections.
 
 ### GitHub Actions integration
 
