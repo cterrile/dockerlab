@@ -72,9 +72,6 @@
               name: Palantir
             - symbol: XYZ
               name: Block
-
-        - type: docker-containers
-          hide-by-default: false
           
         - type: releases
           cache: 1d
@@ -90,3 +87,6 @@
             - mealie-recipes/mealie
             - plexinc/pms-docker
             - nous-research/hermes-agent
+
+        - type: docker-containers
+          hide-by-default: false
