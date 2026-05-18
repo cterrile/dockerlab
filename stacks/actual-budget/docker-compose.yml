@@ -40,3 +40,7 @@ services:
 volumes:
   actual-budget-data:
     external: true
+
+networks:
+  pangolin:
+    external: true
