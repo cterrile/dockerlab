@@ -20,14 +20,19 @@ steps:
 
   - name: Setup SSH
     command: |
-      if [ -z "${SSH_PRIVATE_KEY}" ]; then
-        echo "ERROR: SSH_PRIVATE_KEY env var is not set" >&2
-        exit 1
-      fi
-      mkdir -p /root/.ssh && chmod 700 /root/.ssh
-      printf '%s\n' "${SSH_PRIVATE_KEY}" > /root/.ssh/id_ed25519
-      chmod 600 /root/.ssh/id_ed25519
-      ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts 2>/dev/null
+      infisical run \
+        --domain "$INFISICAL_URL" \
+        --token "$INFISICAL_TOKEN" \
+        --env prod \
+        -- \
+        sh -c '
+          set +x
+          mkdir -p /root/.ssh && chmod 700 /root/.ssh
+          printf "%s" "$SSH_PRIVATE_KEY" | install -m 600 /dev/stdin /root/.ssh/id_ed25519
+          unset SSH_PRIVATE_KEY
+          ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts 2>/dev/null
+          echo "SSH key written and known_hosts configured"
+        '
 
   - name: Clone repo
     command: |

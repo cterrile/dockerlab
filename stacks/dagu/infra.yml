@@ -8,6 +8,5 @@ secrets:
   - INFISICAL_URL
   - INFISICAL_TOKEN
   - REPO_URL
-  - SSH_PRIVATE_KEY
 docker_volumes: {}
 depends_on_stacks: []
