@@ -1,0 +1,7 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/actual-budget
+env_file: true
+secrets:
+  - DOMAIN
+docker_volumes: {}
+depends_on_stacks: []
