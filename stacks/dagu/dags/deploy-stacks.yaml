@@ -1,5 +1,15 @@
 description: Deploy Docker Compose stacks via Ansible
 
+env:
+  - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+  - REPO_URL: ${REPO_URL}
+  - INFISICAL_URL: ${INFISICAL_URL}
+
+secrets:
+  - name: INFISICAL_TOKEN
+    provider: env
+    key: INFISICAL_TOKEN
+
 params:
   - STACKS: ""
 
@@ -79,6 +89,14 @@ handler_on:
 
 name: deploy-stack
 description: Deploy a single stack
+
+env:
+  - INFISICAL_URL: ${INFISICAL_URL}
+
+secrets:
+  - name: INFISICAL_TOKEN
+    provider: env
+    key: INFISICAL_TOKEN
 
 params:
   - STACK: ""
