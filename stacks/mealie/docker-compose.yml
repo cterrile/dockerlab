@@ -38,7 +38,7 @@ services:
       SMTP_AUTH_STRATEGY: 'NONE'
       SMTP_FROM_NAME: Mealie
       SMTP_FROM_EMAIL: cookbook@${DOMAIN}
-      # OpenAI Settings (Using custom provider)
+      # OpenAI Settings
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: zai-org/GLM-5.1
