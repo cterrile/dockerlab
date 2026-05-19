@@ -3,7 +3,7 @@ description: Deploy Docker Compose stacks via Ansible
 env:
   - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
   - REPO_URL: ${REPO_URL}
-  - INFISICAL_URL: ${INFISICAL_URL}
+  - INFISICAL_URL: ${INFISICAL_API_URL}
 
 secrets:
   - name: INFISICAL_TOKEN
