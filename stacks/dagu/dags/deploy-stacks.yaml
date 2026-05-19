@@ -14,15 +14,6 @@ params:
   - STACKS: ""
 
 steps:
-  - name: Init Infisical
-    command: |
-      if [ -z "${INFISICAL_PROJECT_ID}" ]; then
-        echo "ERROR: INFISICAL_PROJECT_ID env var is not set" >&2
-        exit 1
-      fi
-      printf '{"workspaceId":"%s"}\n' "${INFISICAL_PROJECT_ID}" > /.infisical.json
-      echo "Wrote /.infisical.json for project ${INFISICAL_PROJECT_ID}"
-
   - name: Resolve stacks
     command: |
       # Prefer explicit STACKS param (manual UI trigger),
@@ -42,6 +33,7 @@ steps:
       infisical run \
         --domain "$INFISICAL_URL" \
         --token "$INFISICAL_TOKEN" \
+        --projectId "$INFISICAL_PROJECT_ID" \
         --env prod \
         -- \
         sh -c '
@@ -91,6 +83,7 @@ name: deploy-stack
 description: Deploy a single stack
 
 env:
+  - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
   - INFISICAL_URL: ${INFISICAL_URL}
 
 secrets:
@@ -130,6 +123,7 @@ steps:
       infisical run \
         --domain "$INFISICAL_URL" \
         --token "$INFISICAL_TOKEN" \
+        --projectId "$INFISICAL_PROJECT_ID" \
         --env prod \
         -- \
         ansible-playbook playbooks/deploy-stacks.yml $LIMIT_ARGS
