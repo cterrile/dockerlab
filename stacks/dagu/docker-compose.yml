@@ -12,7 +12,7 @@ services:
       - DAGU_DAGS_DIR=/var/lib/dagu/dags
       - DAGU_TZ=America/Los_Angeles
       - DAGU_AUTH_MODE=builtin
-      - INFISICAL_API_URL=http://infisical:8080
+      - INFISICAL_API_URL=https://infisical.${DOMAIN}
       - INFISICAL_TOKEN=${INFISICAL_TOKEN}
       - INFISICAL_PROJECT_ID=f217186f-b64f-4e05-ac49-2af700a2cc5c
       - REPO_URL=https://github.com/cterrile/dockerlab.git
