@@ -38,10 +38,10 @@ steps:
         -- \
         sh -c '
           set +x
-          mkdir -p /root/.ssh && chmod 700 /root/.ssh
-          printf "%s" "$SSH_PRIVATE_KEY" | install -m 600 /dev/stdin /root/.ssh/id_ed25519
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          printf "%s" "$SSH_PRIVATE_KEY" | install -m 600 /dev/stdin "$HOME/.ssh/id_ed25519"
           unset SSH_PRIVATE_KEY
-          ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -t ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
           echo "SSH key written and known_hosts configured"
         '
 
@@ -84,7 +84,7 @@ description: Deploy a single stack
 
 env:
   - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
-  - INFISICAL_URL: ${INFISICAL_URL}
+  - INFISICAL_URL: ${INFISICAL_API_URL}
 
 secrets:
   - name: INFISICAL_TOKEN
@@ -129,6 +129,7 @@ steps:
         ansible-playbook playbooks/deploy-stacks.yml $LIMIT_ARGS
     env:
       - ANSIBLE_FORCE_COLOR: "true"
+      - ANSIBLE_PRIVATE_KEY_FILE: /home/dagu/.ssh/id_ed25519
       - DEPLOY_STACK: "${STACK}"
     retry_policy:
       limit: 1

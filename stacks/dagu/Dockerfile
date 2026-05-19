@@ -22,6 +22,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
     && apt-get install -y infisical \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /etc/custom-init.d /workspace \
+    && printf '%s\n' \
+        '#!/bin/sh' \
+        'mkdir -p /workspace' \
+        'chown -R "${PUID}:${PGID}" /workspace' \
+        > /etc/custom-init.d/01-workspace-perms.sh \
+    && chmod +x /etc/custom-init.d/01-workspace-perms.sh
 
 ENV PATH="/opt/ansible/bin:${PATH}"
