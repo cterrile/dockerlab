@@ -30,6 +30,7 @@ services:
       POSTGRES_SERVER: mealie-db
       POSTGRES_PORT: 5432
       POSTGRES_DB: mealie
+      # Email Settings
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
@@ -37,6 +38,7 @@ services:
       SMTP_AUTH_STRATEGY: 'NONE'
       SMTP_FROM_NAME: Mealie
       SMTP_FROM_EMAIL: cookbook@${DOMAIN}
+      # OpenAI Settings
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: zai-org/GLM-5.1
