@@ -1,0 +1,4 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/vaultwarden
+docker_volumes: {}
+depends_on_stacks: []
