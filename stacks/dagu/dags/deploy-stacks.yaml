@@ -69,7 +69,7 @@ steps:
     parallel:
       items: ${STACK_LIST}
       max_concurrent: 1
-    params: "STACK=${ITEM}"
+    params: "STACK=${ITEM} INFISICAL_URL=${INFISICAL_URL} INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}"
 
 handler_on:
   failure:
@@ -82,10 +82,6 @@ handler_on:
 name: deploy-stack
 description: Deploy a single stack
 
-env:
-  - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
-  - INFISICAL_URL: ${INFISICAL_API_URL}
-
 secrets:
   - name: INFISICAL_TOKEN
     provider: env
@@ -93,6 +89,8 @@ secrets:
 
 params:
   - STACK: ""
+  - INFISICAL_URL: ""
+  - INFISICAL_PROJECT_ID: ""
 
 working_dir: /workspace/dockerlab
 
@@ -113,6 +111,11 @@ steps:
 
   - name: Run Ansible deployment
     command: |
+      if [ -z "${INFISICAL_URL}" ]; then
+        echo "ERROR: INFISICAL_URL is not set" >&2
+        exit 1
+      fi
+
       LIMIT_ARGS=""
       if [ "$ANSIBLE_LIMIT" != "all" ] && [ -n "$ANSIBLE_LIMIT" ]; then
         LIMIT_ARGS="--limit $ANSIBLE_LIMIT"
