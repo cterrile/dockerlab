@@ -30,28 +30,20 @@ steps:
 
   - name: Setup SSH
     command: |
-      infisical run \
+      set -e
+      export INFISICAL_DISABLE_UPDATE_CHECK=true
+
+      infisical secrets get SSH_PRIVATE_KEY \
         --domain "$INFISICAL_URL" \
         --token "$INFISICAL_TOKEN" \
         --projectId "$INFISICAL_PROJECT_ID" \
         --env prod \
-        -- \
-        sh -c '
-          set +x
-          KEY=/home/dagu/.ssh/id_ed25519
-          mkdir -p /home/dagu/.ssh
-          chmod 700 /home/dagu/.ssh
-          # Infisical often stores multiline keys with literal \n sequences
-          printf "%b" "$SSH_PRIVATE_KEY" | tr -d "\r" > "$KEY"
-          chmod 600 "$KEY"
-          unset SSH_PRIVATE_KEY
-          ssh-keygen -y -f "$KEY" >/dev/null 2>&1 || {
-            echo "ERROR: SSH private key is invalid after write (check Infisical format)" >&2
-            exit 1
-          }
-          ssh-keyscan -t ed25519 github.com >> /home/dagu/.ssh/known_hosts 2>/dev/null
-          echo "SSH key validated and known_hosts configured"
-        '
+        --expand=false \
+        --plain --silent \
+      | write-ssh-key.py
+
+      ssh-keyscan -t ed25519 github.com >> /home/dagu/.ssh/known_hosts 2>/dev/null
+      echo "SSH key validated and known_hosts configured"
 
   - name: Clone repo
     command: |
