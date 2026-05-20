@@ -129,7 +129,7 @@ steps:
         --projectId "$INFISICAL_PROJECT_ID" \
         --env prod \
         -- \
-        ansible-playbook playbooks/deploy-stacks.yml $LIMIT_ARGS
+        /opt/ansible/bin/ansible-playbook playbooks/deploy-stacks.yml $LIMIT_ARGS
     env:
       - ANSIBLE_FORCE_COLOR: "true"
       - ANSIBLE_PRIVATE_KEY_FILE: /home/dagu/.ssh/id_ed25519
