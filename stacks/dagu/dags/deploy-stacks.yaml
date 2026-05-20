@@ -38,11 +38,19 @@ steps:
         -- \
         sh -c '
           set +x
-          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-          printf "%s" "$SSH_PRIVATE_KEY" | install -m 600 /dev/stdin "$HOME/.ssh/id_ed25519"
+          KEY=/home/dagu/.ssh/id_ed25519
+          mkdir -p /home/dagu/.ssh
+          chmod 700 /home/dagu/.ssh
+          # Infisical often stores multiline keys with literal \n sequences
+          printf "%b" "$SSH_PRIVATE_KEY" | tr -d "\r" > "$KEY"
+          chmod 600 "$KEY"
           unset SSH_PRIVATE_KEY
-          ssh-keyscan -t ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
-          echo "SSH key written and known_hosts configured"
+          ssh-keygen -y -f "$KEY" >/dev/null 2>&1 || {
+            echo "ERROR: SSH private key is invalid after write (check Infisical format)" >&2
+            exit 1
+          }
+          ssh-keyscan -t ed25519 github.com >> /home/dagu/.ssh/known_hosts 2>/dev/null
+          echo "SSH key validated and known_hosts configured"
         '
 
   - name: Clone repo
