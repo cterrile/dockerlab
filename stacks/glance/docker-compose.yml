@@ -21,7 +21,6 @@ services:
       - pangolin.public-resources.glance.targets[0].path=/
       - pangolin.public-resources.glance.targets[0].method=http  
     #env_file: .env
-    #Test comment
 
 networks:
   pangolin:
