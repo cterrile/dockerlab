@@ -36,6 +36,8 @@ services:
       - pangolin.public-resources.actual-budget.protocol=http
       - pangolin.public-resources.actual-budget.targets[0].hostname=actual-budget
       - pangolin.public-resources.actual-budget.targets[0].port=5006
+      - pangolin.public-resources.actual-budget.targets[0].path=/
+      - pangolin.public-resources.actual-budget.targets[0].method=http
 
 volumes:
   actual-budget-data:
