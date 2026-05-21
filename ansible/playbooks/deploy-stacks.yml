@@ -1,7 +1,6 @@
 ---
 - name: Deploy Docker Compose stack
   hosts: all
-  become: true
   vars:
     deploy_stack: "{{ lookup('env', 'DEPLOY_STACK') }}"
 
