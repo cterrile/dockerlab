@@ -3,5 +3,6 @@ deploy_path: /home/deploy/dockerlab/stacks/glance
 env_file: true
 secrets:
   - DOMAIN
+  - GLANCE_PORTAINER_TOKEN
 docker_volumes: {}
 depends_on_stacks: []

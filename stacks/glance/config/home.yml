@@ -91,3 +91,5 @@
         - type: docker-containers
           title: Homelab
           hide-by-default: true
+
+        - $include: portainer-widget.yml

@@ -28,6 +28,10 @@ services:
       - glance.url=https://glance.${DOMAIN}
       - glance.description=Dashboard
     #env_file: .env
+    environment:
+      # Portainer widget — set to the ID in your Portainer URL (e.g. #!/2/docker/dashboard → 2)
+      PORTAINER_API_KEY: ${GLANCE_PORTAINER_TOKEN}
+      PORTAINER_ENDPOINT_ID: artemis
 
 networks:
   pangolin:
