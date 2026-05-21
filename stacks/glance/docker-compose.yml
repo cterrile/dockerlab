@@ -19,7 +19,14 @@ services:
       - pangolin.public-resources.glance.targets[0].hostname=glance
       - pangolin.public-resources.glance.targets[0].port=8080
       - pangolin.public-resources.glance.targets[0].path=/
-      - pangolin.public-resources.glance.targets[0].method=http  
+      - pangolin.public-resources.glance.targets[0].method=http
+      # Glance docker-containers widget — see https://github.com/glanceapp/glance/blob/main/docs/configuration.md#docker-containers
+      - glance.category=homelab
+      - glance.hide=false
+      - glance.name=Glance
+      - glance.icon=sh:glance
+      - glance.url=https://glance.${DOMAIN}
+      - glance.description=Dashboard
     #env_file: .env
 
 networks:

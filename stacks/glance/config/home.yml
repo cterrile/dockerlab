@@ -89,4 +89,5 @@
             - nous-research/hermes-agent
 
         - type: docker-containers
+          title: Homelab
           hide-by-default: true
