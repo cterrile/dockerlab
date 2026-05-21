@@ -33,7 +33,7 @@ steps:
       set -e
       export INFISICAL_DISABLE_UPDATE_CHECK=true
 
-      infisical secrets get SSH_PRIVATE_KEY \
+      infisical secrets get DEPLOY_SSH_KEY \
         --domain "$INFISICAL_URL" \
         --token "$INFISICAL_TOKEN" \
         --projectId "$INFISICAL_PROJECT_ID" \
