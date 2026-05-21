@@ -2,7 +2,11 @@ FROM ghcr.io/dagucloud/dagu:latest
 
 USER root
 
-COPY scripts/write-ssh-key.py /usr/local/bin/write-ssh-key.py
+ENV ANSIBLE_COLLECTIONS_PATHS=/opt/ansible/collections
+ENV PATH="/opt/ansible/bin:${PATH}"
+
+COPY stacks/dagu/scripts/write-ssh-key.py /usr/local/bin/write-ssh-key.py
+COPY ansible/requirements.yml /tmp/ansible-requirements.yml
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
@@ -18,9 +22,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && /opt/ansible/bin/pip install --no-cache-dir \
         ansible-core \
         jmespath \
+    && mkdir -p /opt/ansible/collections \
     && /opt/ansible/bin/ansible-galaxy collection install \
-        community.docker \
-        ansible.posix \
+        -r /tmp/ansible-requirements.yml \
+        -p /opt/ansible/collections \
+    && chown -R 1000:1000 /opt/ansible/collections \
+    && rm /tmp/ansible-requirements.yml \
     && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
     && apt-get install -y infisical \
     && apt-get clean \
@@ -36,5 +43,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -sf /opt/ansible/bin/ansible-playbook /usr/local/bin/ansible-playbook \
     && ln -sf /opt/ansible/bin/ansible-galaxy /usr/local/bin/ansible-galaxy \
     && chmod +x /usr/local/bin/write-ssh-key.py
-
-ENV PATH="/opt/ansible/bin:${PATH}"

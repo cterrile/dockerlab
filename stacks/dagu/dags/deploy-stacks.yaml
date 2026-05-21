@@ -123,6 +123,10 @@ steps:
 
       cd ansible
 
+      /opt/ansible/bin/ansible-galaxy collection install \
+        -r requirements.yml \
+        -p /opt/ansible/collections
+
       infisical run \
         --domain "$INFISICAL_URL" \
         --token "$INFISICAL_TOKEN" \

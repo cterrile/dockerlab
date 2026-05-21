@@ -1,6 +1,8 @@
 services:
   dagu:
-    build: .
+    build:
+      context: ../..
+      dockerfile: stacks/dagu/Dockerfile
     image: dagu-deployer:latest
     container_name: dagu
     restart: unless-stopped
