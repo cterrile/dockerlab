@@ -89,4 +89,4 @@
             - nous-research/hermes-agent
 
         - type: docker-containers
-          hide-by-default: false
+          hide-by-default: true
