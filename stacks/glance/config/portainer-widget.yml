@@ -5,7 +5,7 @@
   cache: 5m
   url: https://services.${DOMAIN}/api/endpoints/${PORTAINER_ENDPOINT_ID}
   headers:
-    X-API-Key: ${GLANCE_PORTAINER_TOKEN}
+    X-API-Key: ${PORTAINER_API_KEY}
   template: |
     <style>
       .list-horizontal-text.no-bullets > *:not(:last-child)::after {
