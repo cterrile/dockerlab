@@ -135,6 +135,3 @@ steps:
     env:
       - ANSIBLE_FORCE_COLOR: "true"
       - DEPLOY_STACK: "${STACK}"
-    retry_policy:
-      limit: 1
-      interval_sec: 30
