@@ -15,12 +15,17 @@
     mode: "0750"
 
 - name: Sync stack files to host — {{ docker_stack_name }}
-  ansible.posix.synchronize:
-    src: "{{ stacks_dir }}/{{ docker_stack_name }}/"
-    dest: "{{ docker_stack_deploy_path }}/"
-    delete: true
-    rsync_opts:
-      - "--exclude=infra.yml"
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -az
+      - --delete
+      - --exclude=infra.yml
+      - -e
+      - "ssh -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=no"
+      - "{{ stacks_dir }}/{{ docker_stack_name }}/"
+      - "{{ ansible_user }}@{{ ansible_host }}:{{ docker_stack_deploy_path }}/"
+  delegate_to: localhost
   register: docker_stack_sync_result
 
 - name: Render .env from secrets — {{ docker_stack_name }}

@@ -21,14 +21,19 @@
         mode: "0750"
 
     - name: Sync gateway files to host
-      ansible.posix.synchronize:
-        src: "{{ gateway_dir }}/"
-        dest: "{{ gateway_deploy_path }}/"
-        delete: true
-        rsync_opts:
-          - "--exclude=config/config.yml"
-          - "--exclude=config/letsencrypt"
-          - "--exclude=.env"
+      ansible.builtin.command:
+        argv:
+          - rsync
+          - -az
+          - --delete
+          - --exclude=config/config.yml
+          - --exclude=config/letsencrypt
+          - --exclude=.env
+          - -e
+          - "ssh -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=no"
+          - "{{ gateway_dir }}/"
+          - "{{ ansible_user }}@{{ ansible_host }}:{{ gateway_deploy_path }}/"
+      delegate_to: localhost
       register: sync_result
 
     - name: Render gateway .env
