@@ -57,7 +57,7 @@ services:
       - pangolin.public-resources.mealie.targets[0].method=http  
 
   mealie-db:
-    container_name: postgres
+    container_name: mealie-postgres
     image: postgres:15.15
     restart: always
     networks:
