@@ -1,0 +1,13 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/vikunja
+env_file: true
+secrets:
+  - DOMAIN
+  - VIKUNJA_DB_PASSWORD
+  - VIKUNJA_SERVICE_SECRET
+docker_volumes:
+  vikunja-files:
+    backup: true
+  vikunja-pgdata:
+    backup: true
+depends_on_stacks: []
