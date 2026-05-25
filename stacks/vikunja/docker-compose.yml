@@ -17,21 +17,21 @@ services:
       VIKUNJA_DATABASE_USER: vikunja
       VIKUNJA_DATABASE_DATABASE: vikunja
       VIKUNJA_SERVICE_SECRET: ${VIKUNJA_SERVICE_SECRET}
-      VIKUNJA_SERVICE_ENABLEREGISTRATION: true
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: false
     volumes:
       - vikunja-files:/app/vikunja/files
     depends_on:
       vikunja-db:
         condition: service_healthy
-    #labels:
-      # Pangolin blueprint (public resorce) — see https://docs.pangolin.net/manage/blueprints
-      # - pangolin.public-resources.vikunja.name=vikunja
-      # - pangolin.public-resources.vikunja.full-domain=vikunja.${DOMAIN}
-      # - pangolin.public-resources.vikunja.protocol=http
-      # - pangolin.public-resources.vikunja.targets[0].hostname=vikunja
-      # - pangolin.public-resources.vikunja.targets[0].port=3456
-      # - pangolin.public-resources.vikunja.targets[0].path=/
-      # - pangolin.public-resources.vikunja.targets[0].method=http
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.vikunja.name=vikunja
+      - pangolin.public-resources.vikunja.full-domain=vikunja.${DOMAIN}
+      - pangolin.public-resources.vikunja.protocol=http
+      - pangolin.public-resources.vikunja.targets[0].hostname=vikunja
+      - pangolin.public-resources.vikunja.targets[0].port=3456
+      - pangolin.public-resources.vikunja.targets[0].path=/
+      - pangolin.public-resources.vikunja.targets[0].method=http
 
   vikunja-db:
     image: postgres:18
