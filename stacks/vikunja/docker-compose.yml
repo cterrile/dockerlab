@@ -23,7 +23,7 @@ services:
       vikunja-db:
         condition: service_healthy
     #labels:
-      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      # Pangolin blueprint (public resorce) — see https://docs.pangolin.net/manage/blueprints
       # - pangolin.public-resources.vikunja.name=vikunja
       # - pangolin.public-resources.vikunja.full-domain=vikunja.${DOMAIN}
       # - pangolin.public-resources.vikunja.protocol=http
