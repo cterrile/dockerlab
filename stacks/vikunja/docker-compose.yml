@@ -3,6 +3,7 @@ services:
     image: vikunja/vikunja
     container_name: vikunja
     restart: always
+    user: "0:0"
     ports:
       - "3456:3456"
     networks:
