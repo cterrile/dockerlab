@@ -17,7 +17,7 @@ services:
       VIKUNJA_DATABASE_USER: vikunja
       VIKUNJA_DATABASE_DATABASE: vikunja
       VIKUNJA_SERVICE_SECRET: ${VIKUNJA_SERVICE_SECRET}
-      VIKUNJA_SERVICE_ENABLEREGISTRATION: false
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: true
     volumes:
       - vikunja-files:/app/vikunja/files
     depends_on:
