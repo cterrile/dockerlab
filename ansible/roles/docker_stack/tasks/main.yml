@@ -19,6 +19,7 @@
     argv:
       - rsync
       - -az
+      - --itemize-changes
       - --delete
       - --exclude=infra.yml
       - -e
@@ -27,6 +28,7 @@
       - "{{ ansible_user }}@{{ ansible_host }}:{{ docker_stack_deploy_path }}/"
   delegate_to: localhost
   register: docker_stack_sync_result
+  changed_when: docker_stack_sync_result.stdout | length > 0
 
 - name: Render .env from secrets — {{ docker_stack_name }}
   ansible.builtin.template:
@@ -36,9 +38,25 @@
   when: stack_infra.env_file | default(false)
   register: docker_stack_env_result
 
+- name: Check for Dockerfile — {{ docker_stack_name }}
+  ansible.builtin.stat:
+    path: "{{ docker_stack_deploy_path }}/Dockerfile"
+  register: docker_stack_dockerfile
+
+- name: Build images — {{ docker_stack_name }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} build"
+    chdir: "{{ docker_stack_deploy_path }}"
+  when: docker_stack_dockerfile.stat.exists
+  register: docker_stack_build_result
+  changed_when: >
+    'Successfully built' in docker_stack_build_result.stderr
+    or 'exporting to image' in docker_stack_build_result.stderr
+    or 'Built' in docker_stack_build_result.stderr
+
 - name: Pull images — {{ docker_stack_name }}
   ansible.builtin.command:
-    cmd: "{{ docker_compose_cmd }} pull"
+    cmd: "{{ docker_compose_cmd }} pull{{ ' --ignore-buildable' if docker_stack_dockerfile.stat.exists else '' }}"
     chdir: "{{ docker_stack_deploy_path }}"
   register: docker_stack_pull_result
   changed_when: "'Pull complete' in docker_stack_pull_result.stdout or 'Downloaded' in docker_stack_pull_result.stdout"
