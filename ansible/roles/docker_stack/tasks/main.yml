@@ -19,6 +19,7 @@
     argv:
       - rsync
       - -az
+      - --itemize-changes
       - --delete
       - --exclude=infra.yml
       - -e
@@ -27,6 +28,7 @@
       - "{{ ansible_user }}@{{ ansible_host }}:{{ docker_stack_deploy_path }}/"
   delegate_to: localhost
   register: docker_stack_sync_result
+  changed_when: docker_stack_sync_result.stdout | length > 0
 
 - name: Render .env from secrets — {{ docker_stack_name }}
   ansible.builtin.template:
@@ -47,7 +49,10 @@
     chdir: "{{ docker_stack_deploy_path }}"
   when: docker_stack_dockerfile.stat.exists
   register: docker_stack_build_result
-  changed_when: "'Successfully built' in docker_stack_build_result.stderr or 'exporting to image' in docker_stack_build_result.stderr or 'Built' in docker_stack_build_result.stderr"
+  changed_when: >
+    'Successfully built' in docker_stack_build_result.stderr
+    or 'exporting to image' in docker_stack_build_result.stderr
+    or 'Built' in docker_stack_build_result.stderr
 
 - name: Pull images — {{ docker_stack_name }}
   ansible.builtin.command:

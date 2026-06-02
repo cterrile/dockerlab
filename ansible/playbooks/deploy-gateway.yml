@@ -25,6 +25,7 @@
         argv:
           - rsync
           - -az
+          - --itemize-changes
           - --delete
           - --exclude=config/config.yml
           - --exclude=config/letsencrypt
@@ -35,6 +36,7 @@
           - "{{ ansible_user }}@{{ ansible_host }}:{{ gateway_deploy_path }}/"
       delegate_to: localhost
       register: sync_result
+      changed_when: sync_result.stdout | length > 0
 
     - name: Render gateway .env
       ansible.builtin.copy:
