@@ -1,0 +1,139 @@
+services:
+  plex:
+    image: plexinc/pms-docker
+    container_name: plex
+    restart: always
+    network_mode: host
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      TZ: America/Los_Angeles
+      HOSTNAME: ${MEDIA_SERVER_NAME}
+      ADVERTISE_IP: "http://${MEDIA_SERVER_IP}:32400"
+      ALLOWED_NETWORKS: "192.168.5.0/24"
+    volumes:
+      - ${PLEX_CONFIG_DIR}:/config
+      - new_plex_library:/media/truenas
+
+  tautulli:
+    container_name: tautulli
+    image: linuxserver/tautulli
+    restart: unless-stopped
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+    volumes:
+      - tautulli_config:/config
+    ports:
+      - 8181:8181
+
+  transmission:
+    image: linuxserver/transmission:4.0.5
+    container_name: transmission
+    restart: always
+    networks:
+      - media-service
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+      DOCKER_MODS: linuxserver/mods:transmission-floodui
+    ports:
+      - 9091:9091
+      - 51413:51413
+    volumes:
+      - transmission_config:/config
+      - ${DOWNLOAD_PATH}:/downloads
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    restart: unless-stopped
+    networks:
+      - media-service
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+    volumes:
+      - radarr_config:/config
+      - plex_movie:/movies
+      - ${DOWNLOAD_PATH}:/downloads
+    ports:
+      - 7878:7878
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    restart: unless-stopped
+    networks:
+      - media-service
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+    volumes:
+      - sonarr_config:/config
+      - ${DOWNLOAD_PATH}:/downloads
+      - plex_tv:/tv
+    ports:
+      - 8989:8989
+
+  doplarr:
+    image: lscr.io/linuxserver/doplarr:latest
+    container_name: doplarr
+    restart: unless-stopped
+    networks:
+      - media-service
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+      DISCORD__TOKEN: ${DISCORD_TOKEN}
+      RADARR__API: ${RADARR_TOKEN}
+      RADARR__URL: http://radarr:7878
+      SONARR__API: ${SONARR_TOKEN}
+      SONARR__URL: http://sonarr:8989
+      DISCORD__MAX_RESULTS: 20
+      LOG_LEVEL: info
+    volumes:
+      - doplarr_config:/config
+
+volumes:
+  tautulli_config:
+    name: tautulli_config
+    external: true
+  plex_library:
+    name: plex_library
+    external: true
+  new_plex_library:
+    name: new_plex_library
+    external: true
+  transmission_config:
+    name: transmission_config
+  radarr_config:
+    name: radarr_config
+  sonarr_config:
+    name: sonarr_config
+  doplarr_config:
+    name: doplarr_config
+    external: true
+  plex_tv:
+    name: new_plex_tv_library
+    driver: local
+    driver_opts:
+      type: cifs
+      o: addr=${CIFS_ADDR},username=${CIFS_USERNAME},password=${CIFS_PASSWORD},vers=3.0,file_mode=0777,dir_mode=0777
+      device: ${CIFS_TV_PATH}
+  plex_movie:
+    name: new_plex_movie_library
+    driver: local
+    driver_opts:
+      type: cifs
+      o: addr=${CIFS_ADDR},username=${CIFS_USERNAME},password=${CIFS_PASSWORD},vers=3.0,file_mode=0777,dir_mode=0777
+      device: ${CIFS_MOVIE_PATH}
+
+networks:
+  media-service:
+    driver: bridge
