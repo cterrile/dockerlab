@@ -10,6 +10,9 @@ services:
       PUID: 1000
       PGID: 1000
       TZ: America/Los_Angeles
+      GROCY_FEATURE_FLAG_RECIPES: false
+      GROCY_FEATURE_FLAG_RECIPES_MEALPLAN: false
+      GROCY_FEATURE_FLAG_BATTERIES: false
     volumes:
       - grocy-config:/config
     labels:
