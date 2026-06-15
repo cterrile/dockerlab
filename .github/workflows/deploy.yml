@@ -230,7 +230,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: .github/scripts
+          sparse-checkout: scripts/vikunja
           sparse-checkout-cone-mode: true
 
       - name: Close Vikunja ticket
@@ -242,4 +242,4 @@ jobs:
           DEPLOY_COMMIT: ${{ github.sha }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           CLOSE_REASON: ${{ needs.deploy.result == 'success' && 'deploy' || 'merge' }}
-        run: bash .github/scripts/close-vikunja-ticket.sh
+        run: bash scripts/vikunja/close-ticket.sh

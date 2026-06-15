@@ -3,25 +3,18 @@
 # Sets start_date (if unset) and moves the task to the Doing/In Progress kanban bucket.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
+source "${SCRIPT_DIR}/lib.sh"
+
 TASK_ID="${1:-}"
 if [ -z "$TASK_ID" ]; then
   echo "Usage: $0 <task_id>" >&2
   exit 1
 fi
 
-if [ -z "${VIKUNJA_API_TOKEN:-}" ] && [ -f "${HOME}/.cursor/mcp.json" ]; then
-  VIKUNJA_API_TOKEN="$(jq -r '.mcpServers.vikunja.env.VIKUNJA_API_TOKEN // empty' "${HOME}/.cursor/mcp.json")"
-  VIKUNJA_API_URL="$(jq -r '.mcpServers.vikunja.env.VIKUNJA_URL // empty' "${HOME}/.cursor/mcp.json")"
-fi
+vikunja_load_credentials
 
-: "${VIKUNJA_API_URL:?VIKUNJA_API_URL is required}"
-: "${VIKUNJA_API_TOKEN:?VIKUNJA_API_TOKEN is required}"
-
-auth_header() {
-  printf 'Authorization: Bearer %s' "$VIKUNJA_API_TOKEN"
-}
-
-# Kanban view id per project (Homelab / Personal).
 kanban_view_for_project() {
   case "$1" in
     3) echo 12 ;; # HL
@@ -30,17 +23,16 @@ kanban_view_for_project() {
   esac
 }
 
-# Fallback Doing bucket id when title lookup fails (between default and done).
 doing_bucket_fallback() {
   case "$1" in
-    3) echo 8 ;;  # HL: default=7, done=9
-    1) echo 2 ;;  # ME: default=1, done=3
+    3) echo 8 ;;
+    1) echo 2 ;;
     *) echo "" ;;
   esac
 }
 
 TASK_JSON=$(curl -sf \
-  -H "$(auth_header)" \
+  -H "$(vikunja_auth_header)" \
   -H "Content-Type: application/json" \
   "${VIKUNJA_API_URL}/tasks/${TASK_ID}")
 
@@ -54,12 +46,12 @@ if [ "$DONE" = "true" ]; then
   exit 0
 fi
 
-if [[ "$START_DATE" == "0001-01-01"* || -z "$START_DATE" ]]; then
+if vikunja_date_unset "$START_DATE"; then
   NOW_UTC=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   UPDATED_TASK=$(echo "$TASK_JSON" | jq --arg start_date "$NOW_UTC" '.start_date = $start_date')
   curl -sf \
     -X POST \
-    -H "$(auth_header)" \
+    -H "$(vikunja_auth_header)" \
     -H "Content-Type: application/json" \
     -d "$UPDATED_TASK" \
     "${VIKUNJA_API_URL}/tasks/${TASK_ID}" >/dev/null
@@ -75,7 +67,7 @@ if [ -z "$VIEW_ID" ]; then
 fi
 
 BUCKETS_JSON=$(curl -sS \
-  -H "$(auth_header)" \
+  -H "$(vikunja_auth_header)" \
   -H "Content-Type: application/json" \
   "${VIKUNJA_API_URL}/projects/${PROJECT_ID}/views/${VIEW_ID}/buckets") || {
   echo "::warning::Could not list buckets for project ${PROJECT_ID} view ${VIEW_ID} — skipped bucket move"
@@ -107,7 +99,7 @@ fi
 
 if curl -sS \
   -X POST \
-  -H "$(auth_header)" \
+  -H "$(vikunja_auth_header)" \
   -H "Content-Type: application/json" \
   -d "$(jq -n --argjson task_id "$TASK_ID" '{task_id: $task_id}')" \
   "${VIKUNJA_API_URL}/projects/${PROJECT_ID}/views/${VIEW_ID}/buckets/${DOING_BUCKET_ID}/tasks" >/dev/null; then

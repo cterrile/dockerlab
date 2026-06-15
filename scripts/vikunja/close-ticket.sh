@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Mark Vikunja tickets done after a successful deploy.
+# Mark Vikunja tickets done after merge (and deploy when stacks change).
 # Extracts HL-XX / ME-XX identifiers from the deploy commit message.
 set -euo pipefail
 
-: "${VIKUNJA_API_URL:?VIKUNJA_API_URL is required}"
-: "${VIKUNJA_API_TOKEN:?VIKUNJA_API_TOKEN is required}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
+source "${SCRIPT_DIR}/lib.sh"
 
 COMMIT_MESSAGE="${COMMIT_MESSAGE:-}"
 DEPLOYED_STACKS="${DEPLOYED_STACKS:-}"
@@ -12,9 +13,7 @@ DEPLOY_COMMIT="${DEPLOY_COMMIT:-}"
 GITHUB_RUN_URL="${GITHUB_RUN_URL:-}"
 CLOSE_REASON="${CLOSE_REASON:-deploy}"
 
-auth_header() {
-  printf 'Authorization: Bearer %s' "$VIKUNJA_API_TOKEN"
-}
+vikunja_load_credentials
 
 project_id_for_prefix() {
   case "$1" in
@@ -34,7 +33,7 @@ lookup_task_id() {
   local done
 
   response=$(curl -sf \
-    -H "$(auth_header)" \
+    -H "$(vikunja_auth_header)" \
     -H "Content-Type: application/json" \
     "${VIKUNJA_API_URL}/tasks/${task_num}" 2>/dev/null) || {
     echo "::warning::Could not fetch Vikunja task ${task_num} for ${identifier}"
@@ -65,23 +64,17 @@ lookup_task_id() {
 
 mark_task_done() {
   local task_id="$1"
+  local task_json
+  task_json=$(curl -sf \
+    -H "$(vikunja_auth_header)" \
+    -H "Content-Type: application/json" \
+    "${VIKUNJA_API_URL}/tasks/${task_id}")
   curl -sf \
     -X POST \
-    -H "$(auth_header)" \
+    -H "$(vikunja_auth_header)" \
     -H "Content-Type: application/json" \
-    -d '{"done": true}' \
+    -d "$(echo "$task_json" | jq '.done = true')" \
     "${VIKUNJA_API_URL}/tasks/${task_id}" >/dev/null
-}
-
-add_task_comment() {
-  local task_id="$1"
-  local comment="$2"
-  curl -sf \
-    -X PUT \
-    -H "$(auth_header)" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --arg comment "$comment" '{comment: $comment}')" \
-    "${VIKUNJA_API_URL}/tasks/${task_id}/comments" >/dev/null
 }
 
 if [ -z "$COMMIT_MESSAGE" ]; then
@@ -118,6 +111,6 @@ for identifier in "${IDENTIFIERS[@]}"; do
   fi
 
   mark_task_done "$task_id"
-  add_task_comment "$task_id" "$COMMENT"
+  vikunja_add_comment "$task_id" "$COMMENT"
   echo "Marked ${identifier} (task ${task_id}) as done"
 done
