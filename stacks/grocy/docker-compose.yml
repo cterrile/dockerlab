@@ -1,0 +1,33 @@
+services:
+  grocy:
+    image: lscr.io/linuxserver/grocy:4.6.0
+    container_name: grocy
+    restart: unless-stopped
+    networks:
+      - grocy
+      - pangolin
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Los_Angeles
+    volumes:
+      - grocy-config:/config
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.grocy.name=grocy
+      - pangolin.public-resources.grocy.full-domain=grocy.${DOMAIN}
+      - pangolin.public-resources.grocy.protocol=http
+      - pangolin.public-resources.grocy.targets[0].hostname=grocy
+      - pangolin.public-resources.grocy.targets[0].port=80
+      - pangolin.public-resources.grocy.targets[0].path=/
+      - pangolin.public-resources.grocy.targets[0].method=http
+
+volumes:
+  grocy-config:
+    external: true
+
+networks:
+  pangolin:
+    external: true
+  grocy:
+    driver: bridge

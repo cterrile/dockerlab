@@ -1,0 +1,9 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/grocy
+env_file: true
+secrets:
+  - DOMAIN
+docker_volumes:
+  grocy-config:
+    backup: true
+depends_on_stacks: []
