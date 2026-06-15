@@ -10,6 +10,10 @@ services:
       PUID: 1000
       PGID: 1000
       TZ: America/Los_Angeles
+      # Grocy settings via env — see https://github.com/grocy/grocy/blob/master/config-dist.php
+      GROCY_FEATURE_FLAG_RECIPES: ${GROCY_FEATURE_FLAG_RECIPES:-false}
+      GROCY_FEATURE_FLAG_RECIPES_MEALPLAN: ${GROCY_FEATURE_FLAG_RECIPES_MEALPLAN:-false}
+      GROCY_FEATURE_FLAG_BATTERIES: ${GROCY_FEATURE_FLAG_BATTERIES:-false}
     volumes:
       - grocy-config:/config
     labels:
