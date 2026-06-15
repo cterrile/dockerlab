@@ -7,6 +7,8 @@ on:
       - "stacks/**"
       - "gateway/**"
       - "ansible/**"
+      - ".github/**"
+      - "scripts/**"
   workflow_dispatch:
     inputs:
       stacks:
@@ -25,6 +27,7 @@ jobs:
     outputs:
       changed_stacks: ${{ steps.changes.outputs.stacks }}
       should_deploy: ${{ steps.changes.outputs.should_deploy }}
+      should_close_without_deploy: ${{ steps.changes.outputs.should_close_without_deploy }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,6 +40,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "stacks=${{ github.event.inputs.stacks }}" >> "$GITHUB_OUTPUT"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -50,12 +54,24 @@ jobs:
           if [ -n "$ANSIBLE_CHANGED" ]; then
             echo "stacks=all" >> "$GITHUB_OUTPUT"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
           elif [ -n "$CHANGED_STACKS" ]; then
             echo "stacks=$CHANGED_STACKS" >> "$GITHUB_OUTPUT"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
           else
             echo "stacks=" >> "$GITHUB_OUTPUT"
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+
+            # Tooling-only merges (.github/, scripts/) with a ticket id close on merge.
+            ALL_CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            NON_TOOLING=$(echo "$ALL_CHANGED" | grep -vE '^(\.github/|scripts/)' | head -1 || true)
+            if [ -n "$ALL_CHANGED" ] && [ -z "$NON_TOOLING" ] \
+              && echo "${{ github.event.head_commit.message }}" | grep -qE '(HL|ME)-[0-9]+'; then
+              echo "should_close_without_deploy=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
       - name: Summary
@@ -191,21 +207,6 @@ jobs:
           echo "::error::Timed out waiting for DAG run to complete after $((MAX_POLLS * POLL_INTERVAL))s"
           exit 1
 
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/scripts
-          sparse-checkout-cone-mode: true
-
-      - name: Close Vikunja ticket on successful deploy
-        env:
-          VIKUNJA_API_URL: ${{ secrets.VIKUNJA_API_URL }}
-          VIKUNJA_API_TOKEN: ${{ secrets.VIKUNJA_API_TOKEN }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DEPLOYED_STACKS: ${{ needs.resolve-stacks.outputs.stack_list }}
-          DEPLOY_COMMIT: ${{ github.sha }}
-          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: bash .github/scripts/close-vikunja-ticket.sh
-
       - name: Deployment summary
         if: always()
         run: |
@@ -213,3 +214,32 @@ jobs:
           echo "- **Stacks:** \`${{ needs.resolve-stacks.outputs.stack_list }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **DAG Run:** \`${{ steps.trigger.outputs.dag_name }} / ${{ steps.trigger.outputs.dag_run_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  close-vikunja:
+    name: Close Vikunja ticket
+    needs: [detect-changes, resolve-stacks, deploy]
+    if: |
+      always() &&
+      needs.detect-changes.result == 'success' &&
+      (
+        needs.deploy.result == 'success' ||
+        needs.detect-changes.outputs.should_close_without_deploy == 'true'
+      )
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: true
+
+      - name: Close Vikunja ticket
+        env:
+          VIKUNJA_API_URL: ${{ secrets.VIKUNJA_API_URL }}
+          VIKUNJA_API_TOKEN: ${{ secrets.VIKUNJA_API_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          DEPLOYED_STACKS: ${{ needs.deploy.result == 'success' && needs.resolve-stacks.outputs.stack_list || '' }}
+          DEPLOY_COMMIT: ${{ github.sha }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CLOSE_REASON: ${{ needs.deploy.result == 'success' && 'deploy' || 'merge' }}
+        run: bash .github/scripts/close-vikunja-ticket.sh

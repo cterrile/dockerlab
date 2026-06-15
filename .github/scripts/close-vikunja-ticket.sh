@@ -10,6 +10,7 @@ COMMIT_MESSAGE="${COMMIT_MESSAGE:-}"
 DEPLOYED_STACKS="${DEPLOYED_STACKS:-}"
 DEPLOY_COMMIT="${DEPLOY_COMMIT:-}"
 GITHUB_RUN_URL="${GITHUB_RUN_URL:-}"
+CLOSE_REASON="${CLOSE_REASON:-deploy}"
 
 auth_header() {
   printf 'Authorization: Bearer %s' "$VIKUNJA_API_TOKEN"
@@ -95,7 +96,10 @@ if [ "${#IDENTIFIERS[@]}" -eq 0 ]; then
   exit 0
 fi
 
-COMMENT="Deployed"
+COMMENT="Merged"
+if [ "$CLOSE_REASON" = "deploy" ]; then
+  COMMENT="Deployed"
+fi
 [ -n "$DEPLOY_COMMIT" ] && COMMENT+=" in commit \`${DEPLOY_COMMIT:0:7}\`"
 [ -n "$DEPLOYED_STACKS" ] && COMMENT+=" — stacks: ${DEPLOYED_STACKS}"
 [ -n "$GITHUB_RUN_URL" ] && COMMENT+=$'\n\n'"Workflow: ${GITHUB_RUN_URL}"
