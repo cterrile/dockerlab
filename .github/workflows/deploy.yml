@@ -191,6 +191,21 @@ jobs:
           echo "::error::Timed out waiting for DAG run to complete after $((MAX_POLLS * POLL_INTERVAL))s"
           exit 1
 
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: true
+
+      - name: Close Vikunja ticket on successful deploy
+        env:
+          VIKUNJA_API_URL: ${{ secrets.VIKUNJA_API_URL }}
+          VIKUNJA_API_TOKEN: ${{ secrets.VIKUNJA_API_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          DEPLOYED_STACKS: ${{ needs.resolve-stacks.outputs.stack_list }}
+          DEPLOY_COMMIT: ${{ github.sha }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash .github/scripts/close-vikunja-ticket.sh
+
       - name: Deployment summary
         if: always()
         run: |
