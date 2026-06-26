@@ -1,0 +1,4 @@
+host: icarus
+deploy_path: /home/deploy/dockerlab/stacks/whoami
+env_file: false
+depends_on_stacks: []
