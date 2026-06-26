@@ -158,3 +158,53 @@ vikunja_move_task_to_bucket() {
     echo "::warning::Failed to move ${identifier} to ${bucket_kind} bucket ${bucket_id}"
   fi
 }
+
+vikunja_project_id_for_prefix() {
+  case "$1" in
+    HL) echo 3 ;;
+    ME) echo 1 ;;
+    *) echo "" ;;
+  esac
+}
+
+vikunja_lookup_task_id() {
+  local identifier="$1"
+  local prefix="${identifier%%-*}"
+  local expected_project
+  local task_id
+
+  expected_project="$(vikunja_project_id_for_prefix "$prefix")"
+  if [ -z "$expected_project" ]; then
+    return 1
+  fi
+
+  task_id=$(curl -sf \
+    -H "$(vikunja_auth_header)" \
+    -H "Content-Type: application/json" \
+    "${VIKUNJA_API_URL}/projects/${expected_project}/tasks?per_page=100" \
+    | jq -r --arg ident "$identifier" --argjson project "$expected_project" '
+      [.[] | select(.identifier == $ident and .project_id == $project)] | first | .id // empty
+    ')
+
+  if [ -z "$task_id" ] || [ "$task_id" = "null" ]; then
+    return 1
+  fi
+
+  echo "$task_id"
+}
+
+vikunja_identifier_from_branch() {
+  local branch="$1"
+  if [[ "$branch" =~ ^((HL|ME)-[0-9]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+  fi
+}
+
+vikunja_format_token_count() {
+  local n="${1:-}"
+  if [ -z "$n" ] || [ "$n" = "null" ]; then
+    echo "n/a"
+  else
+    printf "%'d" "$n" 2>/dev/null || echo "$n"
+  fi
+}
