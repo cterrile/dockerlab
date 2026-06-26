@@ -30,8 +30,9 @@ for stack deployment and backup orchestration.
 │  (hosted runner)     │          │  (hosted runner)            │
 │                      │          │                             │
 │  • lint compose      │          │  • detect changed stacks    │
-│  • validate infra.yml│          │  • resolve "all" → list     │
-│  • ansible-lint      │          │  • trigger Dagu webhook     │
+│  • validate infra.yml│          │  • sync DAG YAML (Git Sync) │
+│  • ansible-lint      │          │  • bootstrap dagu runtime   │
+│                      │          │  • trigger deploy-stacks    │
 │                      │          │  • poll until completion    │
 └──────────────────────┘          └─────────────┬──────────────┘
                                                 │ webhook + poll
@@ -40,6 +41,7 @@ for stack deployment and backup orchestration.
                                   │   Dagu (on artemis)        │
                                   │   ops.${DOMAIN}            │
                                   │                            │
+                                  │  • Git Sync pulls DAG YAML │
                                   │  • git clone (fresh)       │
                                   │  • iterate stacks via      │
                                   │    parallel + sub-DAG      │
@@ -185,9 +187,16 @@ block the others.
 
 | Mount | Purpose |
 |-------|---------|
-| `./dags` → `/var/lib/dagu/dags` (ro) | DAG definitions from the repo |
-| `dagu-data` volume | Run history, logs, scheduler state |
+| `dagu-data` volume | Run history, logs, scheduler state, Git Sync cache |
 | `workspace` volume | Ephemeral repo clone per DAG run (`/workspace/dockerlab`) |
+
+DAG definitions are **not** bind-mounted from the host. Dagu pulls workflow YAML
+from the `dockerlab` Git repo via Git Sync (`stacks/dagu/dags` subdirectory).
+Changes to DAG files trigger `POST /api/v1/sync/pull` from GitHub Actions instead
+of redeploying the Dagu container.
+
+The `dagu` stack itself is excluded from routine `deploy-stacks` runs. Runtime
+changes (Dockerfile, compose, image) use a dedicated bootstrap path.
 
 Each deploy run clones a fresh copy of the repo into the `workspace` volume,
 so there are no ownership conflicts and no stale state from previous runs.
@@ -200,10 +209,15 @@ to `/root/.ssh/id_ed25519` at the start of each run. `ssh-keyscan` populates
 
 ### GitHub Actions integration
 
-The deploy workflow triggers a Dagu webhook and polls until the DAG run
-reaches a terminal status (`succeeded`, `failed`, `aborted`, etc.).
+The deploy workflow has three independent paths:
 
-**Webhook trigger:**
+| Change type | Path | Action |
+|-------------|------|--------|
+| `stacks/dagu/dags/**` | Sync DAGs | `POST /api/v1/sync/pull` (Git Sync) |
+| `stacks/dagu/**` (runtime) | Bootstrap | Trigger `deploy-stacks` with `stacks=dagu` |
+| Other stacks / ansible | Deploy | Trigger `deploy-stacks` (dagu excluded) |
+
+**Stack deploy webhook:**
 
 ```
 POST https://ops.${DOMAIN}/api/v1/webhooks/deploy-stacks
@@ -229,6 +243,30 @@ Authorization: Bearer <DAGU_API_KEY>
 ```
 
 Polls every 15–20s until `statusLabel` is terminal (max ~25 min).
+
+**Git Sync pull (DAG definition updates):**
+
+```
+POST https://ops.${DOMAIN}/api/v1/sync/pull
+Authorization: Bearer <DAGU_API_KEY>
+```
+
+Requires `permissions.write_dags` on the API key. Triggered when only
+`stacks/dagu/dags/**` files change — no container redeploy needed.
+
+### Git Sync configuration
+
+Dagu pulls DAG YAML from the repo on startup and every 5 minutes, and on
+demand via the sync/pull endpoint:
+
+| Env var | Value |
+|---------|-------|
+| `DAGU_GITSYNC_ENABLED` | `true` |
+| `DAGU_GITSYNC_REPOSITORY` | `https://github.com/cterrile/dockerlab.git` |
+| `DAGU_GITSYNC_BRANCH` | `main` |
+| `DAGU_GITSYNC_PATH` | `stacks/dagu/dags` |
+| `DAGU_GITSYNC_PUSH_ENABLED` | `false` (read-only) |
+| `DAGU_GITSYNC_AUTH_TOKEN` | GitHub token for private repo access |
 
 ### GitHub Actions secrets required
 

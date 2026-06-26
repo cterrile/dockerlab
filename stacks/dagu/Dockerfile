@@ -1,4 +1,4 @@
-FROM ghcr.io/dagucloud/dagu:latest
+FROM ghcr.io/dagucloud/dagu:2.8.2
 
 USER root
 

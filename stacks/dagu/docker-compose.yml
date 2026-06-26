@@ -20,9 +20,18 @@ services:
       - INFISICAL_TOKEN=${INFISICAL_TOKEN}
       - INFISICAL_PROJECT_ID=f217186f-b64f-4e05-ac49-2af700a2cc5c
       - REPO_URL=https://github.com/cterrile/dockerlab.git
+      - DAGU_GITSYNC_ENABLED=true
+      - DAGU_GITSYNC_REPOSITORY=https://github.com/cterrile/dockerlab.git
+      - DAGU_GITSYNC_BRANCH=main
+      - DAGU_GITSYNC_PATH=stacks/dagu/dags
+      - DAGU_GITSYNC_PUSH_ENABLED=false
+      - DAGU_GITSYNC_AUTOSYNC_ENABLED=true
+      - DAGU_GITSYNC_AUTOSYNC_ON_STARTUP=true
+      - DAGU_GITSYNC_AUTOSYNC_INTERVAL=300
+      - DAGU_GITSYNC_AUTH_TYPE=token
+      - DAGU_GITSYNC_AUTH_TOKEN=${GITHUB_TOKEN}
     volumes:
       - dagu-data:/var/lib/dagu
-      - ./dags:/var/lib/dagu/dags:ro
       - workspace:/workspace
     networks:
       - pangolin
