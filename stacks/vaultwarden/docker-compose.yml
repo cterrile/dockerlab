@@ -1,16 +1,15 @@
-version: '3'
 services:
   bitwarden:
     image: vaultwarden/server
     container_name: bitwarden
     restart: always
     networks:
-      - traefik-proxy
       - pangolin
     volumes:
       - vaultwarden_data:/data
     environment:
-      SIGNUPS_ALLOWED: 'false'   # set to false to disable signups
+      WEBSOCKET_ENABLED: 'true'
+      SIGNUPS_ALLOWED: 'false'
     labels:
       # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
       - pangolin.public-resources.bitwarden.name=bitwarden
@@ -20,10 +19,15 @@ services:
       - pangolin.public-resources.bitwarden.targets[0].port=80
       - pangolin.public-resources.bitwarden.targets[0].path=/
       - pangolin.public-resources.bitwarden.targets[0].method=http
+      - pangolin.public-resources.bitwarden-ws.name=bitwarden-ws
+      - pangolin.public-resources.bitwarden-ws.full-domain=bitwarden.${DOMAIN}
+      - pangolin.public-resources.bitwarden-ws.protocol=http
+      - pangolin.public-resources.bitwarden-ws.targets[0].hostname=bitwarden
+      - pangolin.public-resources.bitwarden-ws.targets[0].port=3012
+      - pangolin.public-resources.bitwarden-ws.targets[0].path=/notifications/hub
+      - pangolin.public-resources.bitwarden-ws.targets[0].method=http
 
 networks:
-  traefik-proxy:
-    external: true
   pangolin:
     external: true
 

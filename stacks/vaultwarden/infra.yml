@@ -1,4 +1,9 @@
 host: icarus
 deploy_path: /home/deploy/dockerlab/stacks/vaultwarden
-docker_volumes: {}
+env_file: true
+secrets:
+  - DOMAIN
+docker_volumes:
+  vaultwarden_data:
+    backup: true
 depends_on_stacks: []
