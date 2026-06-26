@@ -1,0 +1,28 @@
+services:
+  bitwarden:
+    image: vaultwarden/server
+    container_name: bitwarden
+    restart: always
+    networks:
+      - pangolin
+    volumes:
+      - vaultwarden_data:/data
+    environment:
+      SIGNUPS_ALLOWED: 'false'
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.bitwarden.name=bitwarden
+      - pangolin.public-resources.bitwarden.full-domain=bitwarden.${DOMAIN}
+      - pangolin.public-resources.bitwarden.protocol=http
+      - pangolin.public-resources.bitwarden.targets[0].hostname=bitwarden
+      - pangolin.public-resources.bitwarden.targets[0].port=80
+      - pangolin.public-resources.bitwarden.targets[0].path=/
+      - pangolin.public-resources.bitwarden.targets[0].method=http
+
+networks:
+  pangolin:
+    external: true
+
+volumes:
+  vaultwarden_data:
+    external: true
