@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Record worker completion when a PR is opened (does not mark the ticket done).
-# Sets end_date (if unset) and comments with the PR URL.
+# Sets end_date (if unset), moves to For Review, and comments with the PR URL.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +23,7 @@ TASK_JSON=$(curl -sf \
   "${VIKUNJA_API_URL}/tasks/${TASK_ID}")
 
 IDENTIFIER=$(echo "$TASK_JSON" | jq -r '.identifier // empty')
+PROJECT_ID=$(echo "$TASK_JSON" | jq -r '.project_id')
 END_DATE=$(echo "$TASK_JSON" | jq -r '.end_date // empty')
 DONE=$(echo "$TASK_JSON" | jq -r '.done // false')
 
@@ -44,6 +45,8 @@ if vikunja_date_unset "$END_DATE"; then
 else
   echo "end_date already set on ${IDENTIFIER:-$TASK_ID} — leaving unchanged"
 fi
+
+vikunja_move_task_to_bucket "$TASK_ID" "$PROJECT_ID" "for_review" "${IDENTIFIER:-$TASK_ID}"
 
 vikunja_add_comment "$TASK_ID" "PR opened: ${PR_URL}"
 echo "Commented on ${IDENTIFIER:-$TASK_ID} with PR link"

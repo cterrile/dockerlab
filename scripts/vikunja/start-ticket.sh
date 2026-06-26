@@ -15,22 +15,6 @@ fi
 
 vikunja_load_credentials
 
-kanban_view_for_project() {
-  case "$1" in
-    3) echo 12 ;; # HL
-    1) echo 4 ;;  # ME
-    *) echo "" ;;
-  esac
-}
-
-doing_bucket_fallback() {
-  case "$1" in
-    3) echo 8 ;;
-    1) echo 2 ;;
-    *) echo "" ;;
-  esac
-}
-
 TASK_JSON=$(curl -sf \
   -H "$(vikunja_auth_header)" \
   -H "Content-Type: application/json" \
@@ -60,57 +44,4 @@ else
   echo "start_date already set on ${IDENTIFIER:-$TASK_ID} — leaving unchanged"
 fi
 
-VIEW_ID="$(kanban_view_for_project "$PROJECT_ID")"
-if [ -z "$VIEW_ID" ]; then
-  echo "::warning::No kanban view configured for project ${PROJECT_ID} — skipped bucket move"
-  exit 0
-fi
-
-BUCKETS_JSON=$(curl -sS \
-  -H "$(vikunja_auth_header)" \
-  -H "Content-Type: application/json" \
-  "${VIKUNJA_API_URL}/projects/${PROJECT_ID}/views/${VIEW_ID}/buckets") || {
-  echo "::warning::Could not list buckets for project ${PROJECT_ID} view ${VIEW_ID} — skipped bucket move"
-  exit 0
-}
-
-DOING_BUCKET_ID=$(echo "$BUCKETS_JSON" | jq -r '
-  if type == "object" and .message then empty else
-    [.[] | select(
-      (.title | ascii_downcase) == "doing"
-      or (.title | ascii_downcase) == "in progress"
-      or (.title | ascii_downcase | test("in[ -]?progress"))
-      or (.title | ascii_downcase | test("^doing"))
-    )] | first | .id // empty
-  end
-')
-
-if [ -z "$DOING_BUCKET_ID" ] || [ "$DOING_BUCKET_ID" = "null" ]; then
-  DOING_BUCKET_ID="$(doing_bucket_fallback "$PROJECT_ID")"
-  if [ -n "$DOING_BUCKET_ID" ]; then
-    echo "Using fallback Doing bucket id ${DOING_BUCKET_ID} for project ${PROJECT_ID}"
-  fi
-fi
-
-if [ -z "$DOING_BUCKET_ID" ] || [ "$DOING_BUCKET_ID" = "null" ]; then
-  echo "::warning::No Doing/In Progress bucket found for project ${PROJECT_ID} view ${VIEW_ID} — skipped bucket move"
-  exit 0
-fi
-
-if curl -sS \
-  -X POST \
-  -H "$(vikunja_auth_header)" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --argjson task_id "$TASK_ID" '{task_id: $task_id}')" \
-  "${VIKUNJA_API_URL}/projects/${PROJECT_ID}/views/${VIEW_ID}/buckets/${DOING_BUCKET_ID}/tasks" >/dev/null; then
-  BUCKET_TITLE=$(echo "$BUCKETS_JSON" | jq -r --argjson id "$DOING_BUCKET_ID" '
-    if type == "array" then
-      (.[] | select(.id == $id) | .title) // "Doing"
-    else
-      "Doing"
-    end
-  ')
-  echo "Moved ${IDENTIFIER:-$TASK_ID} to bucket: ${BUCKET_TITLE}"
-else
-  echo "::warning::Failed to move ${IDENTIFIER:-$TASK_ID} to Doing bucket ${DOING_BUCKET_ID}"
-fi
+vikunja_move_task_to_bucket "$TASK_ID" "$PROJECT_ID" "doing" "${IDENTIFIER:-$TASK_ID}"
