@@ -24,7 +24,7 @@ services:
       - DAGU_GITSYNC_REPOSITORY=https://github.com/cterrile/dockerlab.git
       - DAGU_GITSYNC_BRANCH=main
       - DAGU_GITSYNC_PATH=stacks/dagu/dags
-      - DAGU_GITSYNC_PUSH_ENABLED=false
+      - DAGU_GITSYNC_PUSH_ENABLED=true
       - DAGU_GITSYNC_AUTOSYNC_ENABLED=true
       - DAGU_GITSYNC_AUTOSYNC_ON_STARTUP=true
       - DAGU_GITSYNC_AUTOSYNC_INTERVAL=300
