@@ -8,5 +8,6 @@ secrets:
   - INFISICAL_URL
   - INFISICAL_TOKEN
   - REPO_URL
+  - GITHUB_TOKEN
 docker_volumes: {}
 depends_on_stacks: []
