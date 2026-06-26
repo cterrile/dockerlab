@@ -198,6 +198,10 @@ of redeploying the Dagu container.
 The `dagu` stack itself is excluded from routine `deploy-stacks` runs. Runtime
 changes (Dockerfile, compose, image) use a dedicated bootstrap path.
 
+On startup, `/etc/custom-init.d/01-data-perms.sh` ensures `/var/lib/dagu` (including
+`dags/`) is owned by `PUID`/`PGID`. Git Sync and the DAG index both need write
+access there after the bind mount was removed.
+
 Each deploy run clones a fresh copy of the repo into the `workspace` volume,
 so there are no ownership conflicts and no stale state from previous runs.
 

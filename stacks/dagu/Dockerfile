@@ -35,10 +35,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p /etc/custom-init.d /workspace \
     && printf '%s\n' \
         '#!/bin/sh' \
-        'mkdir -p /workspace' \
-        'chown -R "${PUID}:${PGID}" /workspace' \
-        > /etc/custom-init.d/01-workspace-perms.sh \
-    && chmod +x /etc/custom-init.d/01-workspace-perms.sh \
+        'mkdir -p /workspace "${DAGU_HOME:-/var/lib/dagu}/dags"' \
+        'chown -R "${PUID}:${PGID}" /workspace "${DAGU_HOME:-/var/lib/dagu}"' \
+        > /etc/custom-init.d/01-data-perms.sh \
+    && chmod +x /etc/custom-init.d/01-data-perms.sh \
     && ln -sf /opt/ansible/bin/ansible /usr/local/bin/ansible \
     && ln -sf /opt/ansible/bin/ansible-playbook /usr/local/bin/ansible-playbook \
     && ln -sf /opt/ansible/bin/ansible-galaxy /usr/local/bin/ansible-galaxy \
