@@ -1,2 +1,3 @@
-ansible_become: true
-ansible_become_method: sudo
+# VPS hosts: deploy user owns stack paths and runs docker via group membership.
+# Bootstrap playbooks (setup-host.yml) set become: true explicitly when sudo is needed.
+ansible_become: false
