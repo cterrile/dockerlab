@@ -198,6 +198,10 @@ of redeploying the Dagu container.
 The `dagu` stack itself is excluded from routine `deploy-stacks` runs. Runtime
 changes (Dockerfile, compose, image) use a dedicated bootstrap path.
 
+On startup, `/etc/custom-init.d/01-data-perms.sh` ensures `/var/lib/dagu` (including
+`dags/`) is owned by `PUID`/`PGID`. Git Sync and the DAG index both need write
+access there after the bind mount was removed.
+
 Each deploy run clones a fresh copy of the repo into the `workspace` volume,
 so there are no ownership conflicts and no stale state from previous runs.
 
@@ -251,8 +255,10 @@ POST https://ops.${DOMAIN}/api/v1/sync/pull
 Authorization: Bearer <DAGU_API_KEY>
 ```
 
-Requires `permissions.write_dags` on the API key. Triggered when only
-`stacks/dagu/dags/**` files change — no container redeploy needed.
+Requires `permissions.write_dags` on the API key and `DAGU_GITSYNC_PUSH_ENABLED=true`
+(Dagu treats pull as a local DAG write; `push_enabled: false` blocks sync entirely).
+Triggered when only `stacks/dagu/dags/**` files change — no container redeploy needed
+unless Git Sync env vars changed.
 
 ### Git Sync configuration
 
@@ -265,7 +271,7 @@ demand via the sync/pull endpoint:
 | `DAGU_GITSYNC_REPOSITORY` | `https://github.com/cterrile/dockerlab.git` |
 | `DAGU_GITSYNC_BRANCH` | `main` |
 | `DAGU_GITSYNC_PATH` | `stacks/dagu/dags` |
-| `DAGU_GITSYNC_PUSH_ENABLED` | `false` (read-only) |
+| `DAGU_GITSYNC_PUSH_ENABLED` | `true` (required for pull/sync; blocks publish from UI if RBAC restricts write) |
 | `DAGU_GITSYNC_AUTH_TOKEN` | GitHub token for private repo access |
 
 ### GitHub Actions secrets required
@@ -274,4 +280,4 @@ demand via the sync/pull endpoint:
 |--------|-------------|
 | `DAGU_WEBHOOK_URL` | Dagu base URL (e.g. `https://ops.example.com`) |
 | `DAGU_WEBHOOK_TOKEN` | Webhook bearer token (`dagu_wh_...`) for triggering |
-| `DAGU_API_KEY` | Dagu API key (view-only is sufficient) for status polling |
+| `DAGU_API_KEY` | Dagu API key with `write_dags` for Git Sync pull; view-only suffices for deploy polling |
