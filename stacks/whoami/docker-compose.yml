@@ -1,0 +1,21 @@
+services:
+  whoami:
+    image: traefik/whoami:latest
+    container_name: whoami
+    restart: unless-stopped
+    networks:
+      - pangolin
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.whoami.name=whoami
+      - pangolin.public-resources.whoami.full-domain=whoami.${DOMAIN}
+      - pangolin.public-resources.whoami.protocol=http
+      - pangolin.public-resources.whoami.targets[0].hostname=whoami
+      - pangolin.public-resources.whoami.targets[0].port=80
+      - pangolin.public-resources.whoami.targets[0].path=/
+      - pangolin.public-resources.whoami.targets[0].method=http
+
+networks:
+  pangolin:
+    external: true
+    name: pangolin
