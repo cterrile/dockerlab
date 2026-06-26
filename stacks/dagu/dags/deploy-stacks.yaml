@@ -1,4 +1,4 @@
-description: Deploy Docker Compose stacks via Ansible
+description: Deploy Docker Compose stacks via Ansible (Git Sync managed)
 
 env:
   - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
