@@ -1,0 +1,28 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/media-service
+env_file: true
+secrets:
+  - MEDIA_SERVER_NAME
+  - MEDIA_SERVER_IP
+  - PLEX_CONFIG_DIR
+  - DOWNLOAD_PATH
+  - DISCORD_TOKEN
+  - RADARR_TOKEN
+  - SONARR_TOKEN
+  - CIFS_ADDR
+  - CIFS_USERNAME
+  - CIFS_PASSWORD
+  - CIFS_TV_PATH
+  - CIFS_MOVIE_PATH
+docker_volumes:
+  transmission_config:
+    backup: true
+  radarr_config:
+    backup: true
+  sonarr_config:
+    backup: true
+  doplarr_config:
+    backup: true
+  tautulli_config:
+    backup: true
+depends_on_stacks: []
