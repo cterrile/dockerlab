@@ -79,7 +79,6 @@ jobs:
           DAGS_CHANGED=$(git diff --name-only HEAD~1 HEAD -- stacks/dagu/dags/ | head -1 || true)
           DAGU_RUNTIME_CHANGED=$(git diff --name-only HEAD~1 HEAD -- stacks/dagu/ \
             | grep -v '^stacks/dagu/dags/' | head -1 || true)
-          ANSIBLE_CHANGED=$(git diff --name-only HEAD~1 HEAD -- ansible/ | head -1 || true)
 
           if [ -n "$DAGS_CHANGED" ]; then
             echo "should_sync_dags=true" >> "$GITHUB_OUTPUT"
@@ -93,11 +92,7 @@ jobs:
             echo "should_bootstrap_dagu=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ -n "$ANSIBLE_CHANGED" ]; then
-            echo "deploy_stacks=all" >> "$GITHUB_OUTPUT"
-            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
-            echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
-          elif [ -n "$DEPLOY_STACKS" ]; then
+          if [ -n "$DEPLOY_STACKS" ]; then
             echo "deploy_stacks=$DEPLOY_STACKS" >> "$GITHUB_OUTPUT"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
             echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
@@ -105,8 +100,8 @@ jobs:
             echo "deploy_stacks=" >> "$GITHUB_OUTPUT"
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
 
-            NON_TOOLING=$(echo "$ALL_CHANGED" | grep -vE '^(\.github/|scripts/)' | head -1 || true)
-            if [ -n "$ALL_CHANGED" ] && [ -z "$NON_TOOLING" ] \
+            NON_DEPLOY=$(echo "$ALL_CHANGED" | grep -vE '^(\.github/|scripts/|ansible/)' | head -1 || true)
+            if [ -n "$ALL_CHANGED" ] && [ -z "$NON_DEPLOY" ] \
               && echo "${{ github.event.head_commit.message }}" | grep -qE '(HL|ME)-[0-9]+'; then
               echo "should_close_without_deploy=true" >> "$GITHUB_OUTPUT"
             else
