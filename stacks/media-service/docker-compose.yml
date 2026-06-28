@@ -1,3 +1,5 @@
+name: media-service
+
 services:
   plex:
     image: plexinc/pms-docker
