@@ -130,7 +130,7 @@ services:
       SONARR__API: ${SONARR_TOKEN}
       SONARR__URL: http://sonarr:8989
       DISCORD__MAX_RESULTS: 20
-      LOG_LEVEL: info
+      LOG_LEVEL: ":info"
     volumes:
       - doplarr_config:/config
 
