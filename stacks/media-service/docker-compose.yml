@@ -112,10 +112,13 @@ volumes:
     external: true
   transmission_config:
     name: transmission_config
+    external: true
   radarr_config:
     name: radarr_config
+    external: true
   sonarr_config:
     name: sonarr_config
+    external: true
   doplarr_config:
     name: doplarr_config
     external: true
