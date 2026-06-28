@@ -115,7 +115,7 @@ services:
       - pangolin.public-resources.sonarr.targets[0].method=http
 
   doplarr:
-    image: lscr.io/linuxserver/doplarr:latest
+    image: lscr.io/linuxserver/doplarr:3.8.0
     container_name: doplarr
     restart: unless-stopped
     networks:
