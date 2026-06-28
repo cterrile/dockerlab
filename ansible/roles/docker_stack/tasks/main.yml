@@ -30,6 +30,18 @@
   register: docker_stack_sync_result
   changed_when: docker_stack_sync_result.stdout | length > 0
 
+- name: Validate required secrets — {{ docker_stack_name }}
+  ansible.builtin.assert:
+    that:
+      - lookup('env', item) | length > 0
+    fail_msg: >-
+      Required secret '{{ item }}' is missing or empty for stack '{{ docker_stack_name }}'.
+      Add it to Infisical prod before deploying.
+  loop: "{{ stack_infra.secrets | default([]) }}"
+  when:
+    - stack_infra.env_file | default(false)
+    - stack_infra.secrets | default([]) | length > 0
+
 - name: Render .env from secrets — {{ docker_stack_name }}
   ansible.builtin.template:
     src: env.j2
