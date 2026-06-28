@@ -56,7 +56,7 @@ services:
       - 51413:51413
     volumes:
       - transmission_config:/config
-      - ${DOWNLOAD_PATH}:/downloads
+      - ${TRANSMISSION_DOWNLOAD_PATH}:/downloads
 
   radarr:
     image: linuxserver/radarr
@@ -72,7 +72,7 @@ services:
     volumes:
       - radarr_config:/config
       - plex_movie:/movies
-      - ${DOWNLOAD_PATH}:/downloads
+      - ${TRANSMISSION_DOWNLOAD_PATH}:/downloads
     ports:
       - 7878:7878
     labels:
@@ -98,7 +98,7 @@ services:
       TZ: America/Los_Angeles
     volumes:
       - sonarr_config:/config
-      - ${DOWNLOAD_PATH}:/downloads
+      - ${TRANSMISSION_DOWNLOAD_PATH}:/downloads
       - plex_tv:/tv
     ports:
       - 8989:8989
