@@ -12,13 +12,16 @@ services:
       ADVERTISE_IP: "http://${MEDIA_SERVER_IP}:32400"
       ALLOWED_NETWORKS: "192.168.5.0/24"
     volumes:
-      - ${PLEX_CONFIG_DIR}:/config
+      - plex_config:/config
       - new_plex_library:/media/truenas
 
   tautulli:
     container_name: tautulli
     image: linuxserver/tautulli
     restart: unless-stopped
+    networks:
+      - pangolin
+      - media-service
     environment:
       PUID: 1000
       PGID: 1000
@@ -27,6 +30,15 @@ services:
       - tautulli_config:/config
     ports:
       - 8181:8181
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.tautulli.name=tautulli
+      - pangolin.public-resources.tautulli.full-domain=tautulli.${DOMAIN}
+      - pangolin.public-resources.tautulli.protocol=http
+      - pangolin.public-resources.tautulli.targets[0].hostname=tautulli
+      - pangolin.public-resources.tautulli.targets[0].port=8181
+      - pangolin.public-resources.tautulli.targets[0].path=/
+      - pangolin.public-resources.tautulli.targets[0].method=http
 
   transmission:
     image: linuxserver/transmission:4.0.5
@@ -52,6 +64,7 @@ services:
     restart: unless-stopped
     networks:
       - media-service
+      - pangolin
     environment:
       PUID: 1000
       PGID: 1000
@@ -62,6 +75,15 @@ services:
       - ${DOWNLOAD_PATH}:/downloads
     ports:
       - 7878:7878
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.radarr.name=radarr
+      - pangolin.public-resources.radarr.full-domain=radarr.${DOMAIN}
+      - pangolin.public-resources.radarr.protocol=http
+      - pangolin.public-resources.radarr.targets[0].hostname=radarr
+      - pangolin.public-resources.radarr.targets[0].port=7878
+      - pangolin.public-resources.radarr.targets[0].path=/
+      - pangolin.public-resources.radarr.targets[0].method=http
 
   sonarr:
     image: linuxserver/sonarr
@@ -69,6 +91,7 @@ services:
     restart: unless-stopped
     networks:
       - media-service
+      - pangolin
     environment:
       PUID: 1000
       PGID: 1000
@@ -79,6 +102,15 @@ services:
       - plex_tv:/tv
     ports:
       - 8989:8989
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.sonarr.name=sonarr
+      - pangolin.public-resources.sonarr.full-domain=sonarr.${DOMAIN}
+      - pangolin.public-resources.sonarr.protocol=http
+      - pangolin.public-resources.sonarr.targets[0].hostname=sonarr
+      - pangolin.public-resources.sonarr.targets[0].port=8989
+      - pangolin.public-resources.sonarr.targets[0].path=/
+      - pangolin.public-resources.sonarr.targets[0].method=http
 
   doplarr:
     image: lscr.io/linuxserver/doplarr:latest
@@ -101,6 +133,9 @@ services:
       - doplarr_config:/config
 
 volumes:
+  plex_config:
+    name: plex_config
+    external: true
   tautulli_config:
     name: tautulli_config
     external: true
@@ -138,5 +173,7 @@ volumes:
       device: ${CIFS_MOVIE_PATH}
 
 networks:
+  pangolin:
+    external: true
   media-service:
     driver: bridge
