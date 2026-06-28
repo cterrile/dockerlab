@@ -25,8 +25,16 @@ jobs:
 
             # Collect env var references and set dummy values so
             # docker compose config can parse the file structure.
+            # Bind-mount sources must be absolute paths — "placeholder"
+            # is parsed as a named volume and fails validation.
             dummy_env=$(grep -oP '\$\{?\K[A-Z_]+' "$f" | sort -u \
-              | while read -r var; do echo "$var=placeholder"; done)
+              | while read -r var; do
+                  if grep -q "\${${var}}:" "$f"; then
+                    echo "${var}=/tmp/ci-placeholder"
+                  else
+                    echo "${var}=placeholder"
+                  fi
+                done)
 
             if env $dummy_env docker compose -f "$f" config --quiet 2>&1; then
               echo "  ✓ $f"
@@ -42,7 +50,13 @@ jobs:
         if: hashFiles('gateway/docker-compose.yml') != ''
         run: |
           dummy_env=$(grep -oP '\$\{?\K[A-Z_]+' gateway/docker-compose.yml \
-            | sort -u | while read -r var; do echo "$var=placeholder"; done)
+            | sort -u | while read -r var; do
+                if grep -q "\${${var}}:" gateway/docker-compose.yml; then
+                  echo "${var}=/tmp/ci-placeholder"
+                else
+                  echo "${var}=placeholder"
+                fi
+              done)
           env $dummy_env docker compose -f gateway/docker-compose.yml config --quiet
 
       - name: Validate infra.yml schemas
