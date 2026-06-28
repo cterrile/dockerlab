@@ -18,7 +18,7 @@ dockerlab/
 └── stacks/
     ├── mealie/
     │   └── docker-compose.yml
-    ├── plex/
+    ├── media-service/
     ├── uptime/
     └── ...
 ```
