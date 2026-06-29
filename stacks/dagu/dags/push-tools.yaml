@@ -75,7 +75,7 @@ steps:
     parallel:
       items: ${HOST_LIST}
       max_concurrent: 1
-    params: "HOST=${ITEM} INFISICAL_URL=${INFISICAL_URL} INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}"
+    params: "HOST=${ITEM}"
 
 handler_on:
   failure:
@@ -88,15 +88,8 @@ handler_on:
 name: push-tools-host
 description: Sync scripts and site files to a single host
 
-secrets:
-  - name: INFISICAL_TOKEN
-    provider: env
-    key: INFISICAL_TOKEN
-
 params:
   - HOST: ""
-  - INFISICAL_URL: ""
-  - INFISICAL_PROJECT_ID: ""
 
 working_dir: /workspace/dockerlab
 
@@ -110,39 +103,16 @@ steps:
       fi
       echo "Pushing tools to host: ${HOST}"
 
-  - name: Resolve Infisical path
-    command: |
-      source scripts/resolve-site-hosts.sh
-      get_site_infisical_path "${HOST}"
-    output: INFISICAL_PATH
-
   - name: Run Ansible push
     command: |
-      if [ -z "${INFISICAL_URL}" ]; then
-        echo "ERROR: INFISICAL_URL is not set" >&2
-        exit 1
-      fi
-
-      PATH_ARGS=""
-      if [ -n "${INFISICAL_PATH}" ] && [ "${INFISICAL_PATH}" != "null" ]; then
-        PATH_ARGS="--path ${INFISICAL_PATH}"
-      fi
-
       cd ansible
 
       /opt/ansible/bin/ansible-galaxy collection install \
         -r requirements.yml \
         -p /opt/ansible/collections
 
-      infisical run \
-        --domain "$INFISICAL_URL" \
-        --token "$INFISICAL_TOKEN" \
-        --projectId "$INFISICAL_PROJECT_ID" \
-        --env prod \
-        $PATH_ARGS \
-        -- \
-        /opt/ansible/bin/ansible-playbook playbooks/push-tools.yml \
-          -e ansible_ssh_private_key_file=/home/dagu/.ssh/id_ed25519 \
-          --limit "${HOST}"
+      /opt/ansible/bin/ansible-playbook playbooks/push-tools.yml \
+        -e ansible_ssh_private_key_file=/home/dagu/.ssh/id_ed25519 \
+        --limit "${HOST}"
     env:
       - ANSIBLE_FORCE_COLOR: "true"

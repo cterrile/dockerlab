@@ -45,21 +45,3 @@
   delegate_to: localhost
   register: site_tools_site_sync
   changed_when: site_tools_site_sync.stdout | length > 0
-
-- name: Validate required site secrets — {{ inventory_hostname }}
-  ansible.builtin.assert:
-    that:
-      - lookup('env', item) | length > 0
-    fail_msg: >-
-      Required secret '{{ item }}' is missing or empty for site host '{{ inventory_hostname }}'.
-      Add it to Infisical prod under {{ site_host_config.infisical_path | default('/sites/' ~ inventory_hostname) }}.
-  loop: "{{ site_host_config.secrets | default([]) }}"
-  when: site_host_config.secrets | default([]) | length > 0
-
-- name: Render site .env from secrets — {{ inventory_hostname }}
-  ansible.builtin.template:
-    src: env.j2
-    dest: "{{ site_tools_compose_path }}/.env"
-    mode: "0600"
-  when: site_host_config.secrets | default([]) | length > 0
-  register: site_tools_env_result
