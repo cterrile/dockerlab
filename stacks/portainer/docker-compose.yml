@@ -7,6 +7,9 @@ services:
       - no-new-privileges:true
     networks:
       - pangolin
+    ports:
+      # Temporary — edge agents still using services.${DOMAIN}:8000; remove after migration to portainer-edge.${DOMAIN}
+      - 8000:8000
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -29,6 +32,12 @@ services:
       - pangolin.public-resources.portainer-edge.targets[0].port=8000
       - pangolin.public-resources.portainer-edge.targets[0].path=/
       - pangolin.public-resources.portainer-edge.targets[0].method=http
+      # Temporary TCP tunnel on :8000 for legacy edge agents (public IP, not 443)
+      - pangolin.public-resources.portainer-edge-tcp.name=portainer-edge-tcp
+      - pangolin.public-resources.portainer-edge-tcp.protocol=tcp
+      - pangolin.public-resources.portainer-edge-tcp.proxy-port=8000
+      - pangolin.public-resources.portainer-edge-tcp.targets[0].hostname=portainer
+      - pangolin.public-resources.portainer-edge-tcp.targets[0].port=8000
 
 networks:
   pangolin:
