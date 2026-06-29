@@ -1,0 +1,32 @@
+services:
+  portainer:
+    image: portainer/portainer-ee:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - pangolin
+    ports:
+      - 8000:8000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.portainer.name=portainer
+      - pangolin.public-resources.portainer.full-domain=services.${DOMAIN}
+      - pangolin.public-resources.portainer.protocol=http
+      - pangolin.public-resources.portainer.targets[0].hostname=portainer
+      - pangolin.public-resources.portainer.targets[0].port=9000
+      - pangolin.public-resources.portainer.targets[0].path=/
+      - pangolin.public-resources.portainer.targets[0].method=http
+
+networks:
+  pangolin:
+    external: true
+
+volumes:
+  portainer_data:
+    external: true
