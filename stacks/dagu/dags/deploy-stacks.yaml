@@ -65,7 +65,8 @@ steps:
         | awk 'NF' | jq -R . | jq -s .
     output: STACK_LIST
 
-  - call: deploy-stack
+  - name: Deploy stacks
+    call: deploy-stack
     parallel:
       items: ${STACK_LIST}
       max_concurrent: 1
