@@ -445,11 +445,11 @@ jobs:
         id: trigger
         env:
           DAGU_BASE_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
-          DAGU_WEBHOOK_TOKEN: ${{ secrets.DAGU_WEBHOOK_TOKEN }}
+          DAGU_PUSH_TOOLS_WEBHOOK_TOKEN: ${{ secrets.DAGU_PUSH_TOOLS_WEBHOOK_TOKEN }}
         run: |
           HTTP_STATUS=$(curl -s -o /tmp/dagu-response.json -w "%{http_code}" \
             -X POST "${DAGU_BASE_URL}/api/v1/webhooks/push-tools" \
-            -H "Authorization: Bearer ${DAGU_WEBHOOK_TOKEN}" \
+            -H "Authorization: Bearer ${DAGU_PUSH_TOOLS_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{
               "payload": {
