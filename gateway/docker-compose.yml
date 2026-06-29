@@ -74,7 +74,6 @@ services:
       - 21820:21820/udp
       - 80:80
       - 443:443
-      - 8000:8000  # temporary — Portainer edge agent tunnel
 
   traefik:
     image: traefik:v3.6
