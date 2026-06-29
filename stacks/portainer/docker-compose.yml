@@ -24,7 +24,6 @@ services:
       - pangolin.public-resources.portainer-edge.name=portainer-edge
       - pangolin.public-resources.portainer-edge.full-domain=portainer-edge.${DOMAIN}
       - pangolin.public-resources.portainer-edge.protocol=http
-      - pangolin.public-resources.portainer-edge.auth.sso-enabled=false
       - pangolin.public-resources.portainer-edge.targets[0].hostname=portainer
       - pangolin.public-resources.portainer-edge.targets[0].port=8000
       - pangolin.public-resources.portainer-edge.targets[0].path=/
