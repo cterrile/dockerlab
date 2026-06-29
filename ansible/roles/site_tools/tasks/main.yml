@@ -1,0 +1,91 @@
+---
+- name: Set site tools paths — {{ inventory_hostname }}
+  ansible.builtin.set_fact:
+    site_scripts_path: "{{ site_host_config.scripts_path | default(default_tools_base ~ '/scripts') }}"
+    site_compose_path: "{{ site_host_config.site_path | default(default_tools_base ~ '/site') }}"
+
+- name: Ensure scripts directory exists — {{ inventory_hostname }}
+  ansible.builtin.file:
+    path: "{{ site_scripts_path }}"
+    state: directory
+    mode: "0750"
+
+- name: Ensure site directory exists — {{ inventory_hostname }}
+  ansible.builtin.file:
+    path: "{{ site_compose_path }}"
+    state: directory
+    mode: "0750"
+
+- name: Sync scripts to host — {{ inventory_hostname }}
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -az
+      - --itemize-changes
+      - --delete
+      - --exclude=vikunja/
+      - -e
+      - "ssh -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=no"
+      - "{{ tools_dir }}/"
+      - "{{ ansible_user }}@{{ ansible_host }}:{{ site_scripts_path }}/"
+  delegate_to: localhost
+  register: site_tools_scripts_sync
+  changed_when: site_tools_scripts_sync.stdout | length > 0
+
+- name: Sync site compose to host — {{ inventory_hostname }}
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -az
+      - --itemize-changes
+      - -e
+      - "ssh -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=no"
+      - "{{ site_dir }}/docker-compose.yml"
+      - "{{ ansible_user }}@{{ ansible_host }}:{{ site_compose_path }}/docker-compose.yml"
+  delegate_to: localhost
+  register: site_tools_site_sync
+  changed_when: site_tools_site_sync.stdout | length > 0
+
+- name: Validate required site secrets — {{ inventory_hostname }}
+  ansible.builtin.assert:
+    that:
+      - lookup('env', item) | length > 0
+    fail_msg: >-
+      Required secret '{{ item }}' is missing or empty for site host '{{ inventory_hostname }}'.
+      Add it to Infisical prod under {{ site_host_config.infisical_path | default('/sites/' ~ inventory_hostname) }}.
+  loop: "{{ site_host_config.secrets | default([]) }}"
+  when: site_host_config.secrets | default([]) | length > 0
+
+- name: Render site .env from secrets — {{ inventory_hostname }}
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ site_compose_path }}/.env"
+    mode: "0600"
+  when: site_host_config.secrets | default([]) | length > 0
+  register: site_tools_env_result
+
+- name: Pull site images — {{ inventory_hostname }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} pull"
+    chdir: "{{ site_compose_path }}"
+  register: site_tools_pull_result
+  changed_when: "'Pull complete' in site_tools_pull_result.stdout or 'Downloaded' in site_tools_pull_result.stdout"
+
+- name: Deploy site tools — {{ inventory_hostname }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
+    chdir: "{{ site_compose_path }}"
+  register: site_tools_deploy_result
+  changed_when: "'Started' in site_tools_deploy_result.stderr or 'Creating' in site_tools_deploy_result.stderr"
+
+- name: Show site containers — {{ inventory_hostname }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} ps --format json"
+    chdir: "{{ site_compose_path }}"
+  register: site_tools_ps_result
+  changed_when: false
+  failed_when: false
+
+- name: Site tools status — {{ inventory_hostname }}
+  ansible.builtin.debug:
+    msg: "{{ site_tools_ps_result.stdout_lines | default([]) }}"

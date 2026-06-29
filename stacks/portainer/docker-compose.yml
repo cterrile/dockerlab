@@ -7,8 +7,6 @@ services:
       - no-new-privileges:true
     networks:
       - pangolin
-    ports:
-      - 8000:8000
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -22,6 +20,15 @@ services:
       - pangolin.public-resources.portainer.targets[0].port=9000
       - pangolin.public-resources.portainer.targets[0].path=/
       - pangolin.public-resources.portainer.targets[0].method=http
+      # Edge agent tunnel over HTTPS — set tunnel URL in Portainer Edge Compute to https://portainer-edge.${DOMAIN}
+      - pangolin.public-resources.portainer-edge.name=portainer-edge
+      - pangolin.public-resources.portainer-edge.full-domain=portainer-edge.${DOMAIN}
+      - pangolin.public-resources.portainer-edge.protocol=http
+      - pangolin.public-resources.portainer-edge.auth.sso-enabled=false
+      - pangolin.public-resources.portainer-edge.targets[0].hostname=portainer
+      - pangolin.public-resources.portainer-edge.targets[0].port=8000
+      - pangolin.public-resources.portainer-edge.targets[0].path=/
+      - pangolin.public-resources.portainer-edge.targets[0].method=http
 
 networks:
   pangolin:

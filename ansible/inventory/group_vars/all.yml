@@ -1,6 +1,9 @@
 stacks_dir: "{{ playbook_dir }}/../../stacks"
 gateway_dir: "{{ playbook_dir }}/../../gateway"
+tools_dir: "{{ playbook_dir }}/../../scripts"
+site_dir: "{{ playbook_dir }}/../../site"
 
 docker_compose_cmd: docker compose
 
 default_deploy_base: /home/deploy/dockerlab/stacks
+default_tools_base: /home/deploy/dockerlab
