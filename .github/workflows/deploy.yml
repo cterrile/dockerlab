@@ -7,14 +7,19 @@ on:
       - "stacks/**"
       - "gateway/**"
       - "ansible/**"
+      - "site/**"
       - ".github/**"
       - "scripts/**"
   workflow_dispatch:
     inputs:
       stacks:
-        description: "Comma-separated stack names to deploy, or 'all'"
+        description: "Comma-separated stack names to deploy, or 'all' (leave empty to skip stack deploy)"
         required: false
-        default: "all"
+        default: ""
+      tools_hosts:
+        description: "Comma-separated hosts for push-tools, or 'all' (leave empty to skip)"
+        required: false
+        default: ""
 
 concurrency:
   group: deploy-production
@@ -27,6 +32,8 @@ jobs:
     outputs:
       deploy_stacks: ${{ steps.changes.outputs.deploy_stacks }}
       should_deploy: ${{ steps.changes.outputs.should_deploy }}
+      should_push_tools: ${{ steps.changes.outputs.should_push_tools }}
+      push_tools_hosts: ${{ steps.changes.outputs.push_tools_hosts }}
       should_sync_dags: ${{ steps.changes.outputs.should_sync_dags }}
       should_bootstrap_dagu: ${{ steps.changes.outputs.should_bootstrap_dagu }}
       should_close_without_deploy: ${{ steps.changes.outputs.should_close_without_deploy }}
@@ -42,9 +49,10 @@ jobs:
             echo "$1" | tr ',' '\n' | grep -v '^dagu$' | grep -v '^$' | sort -u | paste -sd, || true
           }
 
-          # Manual trigger with explicit stack list
+          # Manual trigger with explicit stack and/or tools host list
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             STACKS="${{ github.event.inputs.stacks }}"
+            TOOLS_HOSTS="${{ github.event.inputs.tools_hosts }}"
             SHOULD_BOOTSTRAP_DAGU=false
             SHOULD_SYNC_DAGS=false
 
@@ -65,6 +73,14 @@ jobs:
               echo "should_deploy=false" >> "$GITHUB_OUTPUT"
             fi
 
+            if [ "$TOOLS_HOSTS" = "all" ] || [ -n "$TOOLS_HOSTS" ]; then
+              echo "should_push_tools=true" >> "$GITHUB_OUTPUT"
+              echo "push_tools_hosts=${TOOLS_HOSTS:-all}" >> "$GITHUB_OUTPUT"
+            else
+              echo "should_push_tools=false" >> "$GITHUB_OUTPUT"
+              echo "push_tools_hosts=" >> "$GITHUB_OUTPUT"
+            fi
+
             echo "should_sync_dags=$SHOULD_SYNC_DAGS" >> "$GITHUB_OUTPUT"
             echo "should_bootstrap_dagu=$SHOULD_BOOTSTRAP_DAGU" >> "$GITHUB_OUTPUT"
             echo "should_close_without_deploy=false" >> "$GITHUB_OUTPUT"
@@ -75,6 +91,18 @@ jobs:
           CHANGED_STACKS=$(git diff --name-only HEAD~1 HEAD -- stacks/ \
             | cut -d'/' -f2 | sort -u | paste -sd, || true)
           DEPLOY_STACKS=$(filter_dagu "$CHANGED_STACKS")
+
+          PUSH_TOOLS_CHANGED=$(git diff --name-only HEAD~1 HEAD -- \
+            site/ scripts/ ansible/playbooks/push-tools.yml ansible/roles/site_tools/ \
+            | grep -v '^scripts/vikunja/' | head -1 || true)
+
+          if [ -n "$PUSH_TOOLS_CHANGED" ]; then
+            echo "should_push_tools=true" >> "$GITHUB_OUTPUT"
+            echo "push_tools_hosts=all" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_push_tools=false" >> "$GITHUB_OUTPUT"
+            echo "push_tools_hosts=" >> "$GITHUB_OUTPUT"
+          fi
 
           DAGS_CHANGED=$(git diff --name-only HEAD~1 HEAD -- stacks/dagu/dags/ | head -1 || true)
           DAGU_RUNTIME_CHANGED=$(git diff --name-only HEAD~1 HEAD -- stacks/dagu/ \
@@ -100,7 +128,7 @@ jobs:
             echo "deploy_stacks=" >> "$GITHUB_OUTPUT"
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
 
-            NON_DEPLOY=$(echo "$ALL_CHANGED" | grep -vE '^(\.github/|scripts/|ansible/)' | head -1 || true)
+            NON_DEPLOY=$(echo "$ALL_CHANGED" | grep -vE '^(\.github/|scripts/|ansible/|site/)' | head -1 || true)
             if [ -n "$ALL_CHANGED" ] && [ -z "$NON_DEPLOY" ] \
               && echo "${{ github.event.head_commit.message }}" | grep -qE '(HL|ME)-[0-9]+'; then
               echo "should_close_without_deploy=true" >> "$GITHUB_OUTPUT"
@@ -114,6 +142,7 @@ jobs:
           echo "### Deploy trigger" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Event:** ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Deploy stacks:** \`${{ steps.changes.outputs.deploy_stacks }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Push tools hosts:** \`${{ steps.changes.outputs.push_tools_hosts }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Sync DAGs:** ${{ steps.changes.outputs.should_sync_dags }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Bootstrap Dagu:** ${{ steps.changes.outputs.should_bootstrap_dagu }}" >> "$GITHUB_STEP_SUMMARY"
 
@@ -381,14 +410,142 @@ jobs:
           echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **DAG Run:** \`${{ steps.trigger.outputs.dag_name }} / ${{ steps.trigger.outputs.dag_run_id }}\`" >> "$GITHUB_STEP_SUMMARY"
 
+  resolve-tools-hosts:
+    name: Resolve Push-Tools Host List
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_push_tools == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      host_list: ${{ steps.resolve.outputs.host_list }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Expand host list
+        id: resolve
+        run: |
+          HOSTS="${{ needs.detect-changes.outputs.push_tools_hosts }}"
+
+          if [ "$HOSTS" = "all" ]; then
+            chmod +x scripts/resolve-site-hosts.sh
+            HOSTS=$(bash -c 'source scripts/resolve-site-hosts.sh && list_site_hosts')
+          fi
+
+          echo "host_list=$HOSTS" >> "$GITHUB_OUTPUT"
+          echo "Resolved push-tools hosts: $HOSTS"
+
+  push-tools:
+    name: Push Tools via Dagu
+    needs: [detect-changes, resolve-tools-hosts]
+    if: needs.detect-changes.outputs.should_push_tools == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Trigger push-tools DAG via webhook
+        id: trigger
+        env:
+          DAGU_BASE_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
+          DAGU_WEBHOOK_TOKEN: ${{ secrets.DAGU_WEBHOOK_TOKEN }}
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/dagu-response.json -w "%{http_code}" \
+            -X POST "${DAGU_BASE_URL}/api/v1/webhooks/push-tools" \
+            -H "Authorization: Bearer ${DAGU_WEBHOOK_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "payload": {
+                "commit": "${{ github.sha }}",
+                "ref": "${{ github.ref }}",
+                "hosts": "${{ needs.resolve-tools-hosts.outputs.host_list }}"
+              }
+            }')
+
+          echo "Dagu response (HTTP ${HTTP_STATUS}):"
+          cat /tmp/dagu-response.json
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "::error::Dagu webhook failed with HTTP ${HTTP_STATUS}"
+            exit 1
+          fi
+
+          DAG_RUN_ID=$(jq -r '.dagRunId' /tmp/dagu-response.json)
+          DAG_NAME=$(jq -r '.dagName' /tmp/dagu-response.json)
+
+          if [ -z "$DAG_RUN_ID" ] || [ "$DAG_RUN_ID" = "null" ]; then
+            echo "::error::No dagRunId in webhook response"
+            exit 1
+          fi
+
+          echo "dag_run_id=$DAG_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "dag_name=$DAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Triggered push-tools DAG run: $DAG_NAME / $DAG_RUN_ID"
+
+      - name: Poll DAG run until completion
+        env:
+          DAGU_BASE_URL: ${{ secrets.DAGU_WEBHOOK_URL }}
+          DAGU_API_KEY: ${{ secrets.DAGU_API_KEY }}
+          DAG_NAME: ${{ steps.trigger.outputs.dag_name }}
+          DAG_RUN_ID: ${{ steps.trigger.outputs.dag_run_id }}
+        run: |
+          POLL_INTERVAL=20
+          MAX_POLLS=20
+          POLL_COUNT=0
+
+          echo "Polling push-tools DAG run: ${DAG_NAME} / ${DAG_RUN_ID}"
+
+          while [ "$POLL_COUNT" -lt "$MAX_POLLS" ]; do
+            POLL_COUNT=$((POLL_COUNT + 1))
+            sleep "$POLL_INTERVAL"
+
+            RESPONSE=$(curl -sf \
+              -H "Authorization: Bearer ${DAGU_API_KEY}" \
+              "${DAGU_BASE_URL}/api/v1/dag-runs/${DAG_NAME}/${DAG_RUN_ID}" \
+              2>/dev/null) || {
+              echo "::warning::Poll $POLL_COUNT — API request failed, retrying..."
+              continue
+            }
+
+            STATUS_LABEL=$(echo "$RESPONSE" | jq -r '.dagRunDetails.statusLabel // empty')
+            echo "Poll $POLL_COUNT — status: $STATUS_LABEL"
+
+            case "$STATUS_LABEL" in
+              succeeded)
+                echo "Push-tools DAG run completed successfully"
+                exit 0
+                ;;
+              failed|aborted|rejected|partially_succeeded)
+                echo "::error::Push-tools DAG run finished with status: $STATUS_LABEL"
+                exit 1
+                ;;
+              running|queued|not_started|waiting)
+                continue
+                ;;
+              *)
+                echo "::warning::Unknown status: $STATUS_LABEL"
+                continue
+                ;;
+            esac
+          done
+
+          echo "::error::Timed out waiting for push-tools DAG run"
+          exit 1
+
+      - name: Push-tools summary
+        if: always()
+        run: |
+          echo "### Push tools via Dagu" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Hosts:** \`${{ needs.resolve-tools-hosts.outputs.host_list }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **DAG Run:** \`${{ steps.trigger.outputs.dag_name }} / ${{ steps.trigger.outputs.dag_run_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+
   close-vikunja:
     name: Close Vikunja ticket
-    needs: [detect-changes, resolve-stacks, sync-dagu-dags, bootstrap-dagu, deploy]
+    needs: [detect-changes, resolve-stacks, resolve-tools-hosts, sync-dagu-dags, bootstrap-dagu, deploy, push-tools]
     if: |
       always() &&
       needs.detect-changes.result == 'success' &&
       (
         needs.deploy.result == 'success' ||
+        needs.push-tools.result == 'success' ||
         needs.sync-dagu-dags.result == 'success' ||
         needs.bootstrap-dagu.result == 'success' ||
         needs.detect-changes.outputs.should_close_without_deploy == 'true'
@@ -406,6 +563,8 @@ jobs:
         run: |
           if [ "${{ needs.deploy.result }}" = "success" ]; then
             echo "stacks=${{ needs.resolve-stacks.outputs.stack_list }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ needs.push-tools.result }}" = "success" ]; then
+            echo "stacks=tools:${{ needs.resolve-tools-hosts.outputs.host_list }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ needs.bootstrap-dagu.result }}" = "success" ]; then
             echo "stacks=dagu" >> "$GITHUB_OUTPUT"
           elif [ "${{ needs.sync-dagu-dags.result }}" = "success" ]; then

@@ -1,0 +1,118 @@
+description: Push scripts/ and site/ to registered hosts via Ansible (Git Sync managed)
+
+env:
+  - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+  - REPO_URL: ${REPO_URL}
+  - INFISICAL_URL: ${INFISICAL_API_URL}
+
+secrets:
+  - name: INFISICAL_TOKEN
+    provider: env
+    key: INFISICAL_TOKEN
+
+params:
+  - HOSTS: ""
+
+steps:
+  - name: Resolve hosts
+    command: |
+      source scripts/resolve-site-hosts.sh
+
+      if [ -n "${HOSTS}" ]; then
+        echo "${HOSTS}"
+      elif [ -n "${WEBHOOK_PAYLOAD}" ]; then
+        echo "${WEBHOOK_PAYLOAD}" | jq -r '.hosts // empty'
+      else
+        echo "ERROR: No hosts provided via param or webhook payload" >&2
+        exit 1
+      fi
+    output: RESOLVED_HOSTS
+
+  - name: Setup SSH
+    command: |
+      set -e
+      export INFISICAL_DISABLE_UPDATE_CHECK=true
+
+      infisical secrets get DEPLOY_SSH_KEY \
+        --domain "$INFISICAL_URL" \
+        --token "$INFISICAL_TOKEN" \
+        --projectId "$INFISICAL_PROJECT_ID" \
+        --env prod \
+        --expand=false \
+        --plain --silent \
+      | write-ssh-key.py
+
+      ssh-keyscan -t ed25519 github.com >> /home/dagu/.ssh/known_hosts 2>/dev/null
+      echo "SSH key validated and known_hosts configured"
+
+  - name: Clone repo
+    command: |
+      if [ -z "${REPO_URL}" ]; then
+        echo "ERROR: REPO_URL env var is not set" >&2
+        exit 1
+      fi
+      rm -rf /workspace/dockerlab
+      git clone --depth 1 --branch main "${REPO_URL}" /workspace/dockerlab
+
+  - name: Build host list
+    command: |
+      if [ -z "${RESOLVED_HOSTS}" ]; then
+        echo "ERROR: RESOLVED_HOSTS is empty" >&2
+        exit 1
+      fi
+
+      source scripts/resolve-site-hosts.sh
+
+      if [ "${RESOLVED_HOSTS}" = "all" ]; then
+        RESOLVED_HOSTS="$(list_site_hosts)"
+      fi
+
+      echo "${RESOLVED_HOSTS}" | tr ',' '\n' | sed 's/^ *//;s/ *$//' \
+        | awk 'NF' | jq -R . | jq -s .
+    output: HOST_LIST
+
+  - call: push-tools-host
+    parallel:
+      items: ${HOST_LIST}
+      max_concurrent: 1
+    params: "HOST=${ITEM}"
+
+handler_on:
+  failure:
+    command: echo "[FAILED] Push tools pipeline — hosts=${RESOLVED_HOSTS}"
+  success:
+    command: echo "[OK] Pushed tools to hosts=${RESOLVED_HOSTS}"
+
+---
+
+name: push-tools-host
+description: Sync scripts and site files to a single host
+
+params:
+  - HOST: ""
+
+working_dir: /workspace/dockerlab
+
+steps:
+  - name: Validate host registry entry
+    command: |
+      source scripts/resolve-site-hosts.sh
+      if ! host_in_site_registry "${HOST}"; then
+        echo "ERROR: host '${HOST}' is not in site/hosts.yml" >&2
+        exit 1
+      fi
+      echo "Pushing tools to host: ${HOST}"
+
+  - name: Run Ansible push
+    command: |
+      cd ansible
+
+      /opt/ansible/bin/ansible-galaxy collection install \
+        -r requirements.yml \
+        -p /opt/ansible/collections
+
+      /opt/ansible/bin/ansible-playbook playbooks/push-tools.yml \
+        -e ansible_ssh_private_key_file=/home/dagu/.ssh/id_ed25519 \
+        --limit "${HOST}"
+    env:
+      - ANSIBLE_FORCE_COLOR: "true"

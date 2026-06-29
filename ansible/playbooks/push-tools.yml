@@ -1,0 +1,22 @@
+---
+- name: Push site tools (scripts + site compose)
+  hosts: all
+  vars:
+    site_hosts_file: "{{ playbook_dir }}/../../site/hosts.yml"
+
+  pre_tasks:
+    - name: Load site hosts registry
+      ansible.builtin.include_vars:
+        file: "{{ site_hosts_file }}"
+        name: site_registry
+
+    - name: Skip hosts not in site registry
+      ansible.builtin.meta: end_host
+      when: inventory_hostname not in site_registry.hosts
+
+    - name: Set host site config
+      ansible.builtin.set_fact:
+        site_host_config: "{{ site_registry.hosts[inventory_hostname] }}"
+
+  roles:
+    - role: site_tools
