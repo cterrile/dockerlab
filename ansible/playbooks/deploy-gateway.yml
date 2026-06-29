@@ -8,7 +8,7 @@
 # Required env vars: DOMAIN, PANGOLIN_SECRET, LETSENCRYPT_EMAIL
 
 - name: Deploy Pangolin gateway
-  hosts: "{{ gateway_target_host | default('hermes') }}"
+  hosts: "{{ gateway_target_host | default('gaia') }}"
   become: true
   vars:
     gateway_deploy_path: /opt/gateway

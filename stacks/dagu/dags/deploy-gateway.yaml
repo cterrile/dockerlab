@@ -1,0 +1,88 @@
+description: Deploy Pangolin gateway via Ansible (Git Sync managed)
+
+env:
+  - INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+  - REPO_URL: ${REPO_URL}
+  - INFISICAL_URL: ${INFISICAL_API_URL}
+
+secrets:
+  - name: INFISICAL_TOKEN
+    provider: env
+    key: INFISICAL_TOKEN
+
+params:
+  - HOST: "gaia"
+
+steps:
+  - name: Resolve target host
+    command: |
+      if [ -n "${HOST}" ]; then
+        echo "${HOST}"
+      else
+        echo "gaia"
+      fi
+    output: TARGET_HOST
+
+  - name: Setup SSH
+    command: |
+      set -e
+      export INFISICAL_DISABLE_UPDATE_CHECK=true
+
+      infisical secrets get DEPLOY_SSH_KEY \
+        --domain "$INFISICAL_URL" \
+        --token "$INFISICAL_TOKEN" \
+        --projectId "$INFISICAL_PROJECT_ID" \
+        --env prod \
+        --expand=false \
+        --plain --silent \
+      | write-ssh-key.py
+
+      ssh-keyscan -t ed25519 github.com >> /home/dagu/.ssh/known_hosts 2>/dev/null
+      echo "SSH key validated and known_hosts configured"
+
+  - name: Clone repo
+    command: |
+      if [ -z "${REPO_URL}" ]; then
+        echo "ERROR: REPO_URL env var is not set" >&2
+        exit 1
+      fi
+      rm -rf /workspace/dockerlab
+      git clone --depth 1 --branch main "${REPO_URL}" /workspace/dockerlab
+
+  - name: Run Ansible gateway deploy
+    working_dir: /workspace/dockerlab
+    command: |
+      if [ -z "${INFISICAL_URL}" ]; then
+        echo "ERROR: INFISICAL_URL is not set" >&2
+        exit 1
+      fi
+
+      if [ -z "${TARGET_HOST}" ]; then
+        echo "ERROR: TARGET_HOST is empty" >&2
+        exit 1
+      fi
+
+      cd ansible
+
+      /opt/ansible/bin/ansible-galaxy collection install \
+        -r requirements.yml \
+        -p /opt/ansible/collections
+
+      infisical run \
+        --domain "$INFISICAL_URL" \
+        --token "$INFISICAL_TOKEN" \
+        --projectId "$INFISICAL_PROJECT_ID" \
+        --env prod \
+        -- \
+        /opt/ansible/bin/ansible-playbook playbooks/deploy-gateway.yml \
+          -e ansible_ssh_private_key_file=/home/dagu/.ssh/id_ed25519 \
+          -e "gateway_target_host=${TARGET_HOST}" \
+          --limit "${TARGET_HOST}"
+    env:
+      - ANSIBLE_FORCE_COLOR: "true"
+
+handler_on:
+  failure:
+    command: echo "[FAILED] Gateway deploy — host=${TARGET_HOST}"
+  success:
+    command: echo "[OK] Deployed gateway to host=${TARGET_HOST}"
