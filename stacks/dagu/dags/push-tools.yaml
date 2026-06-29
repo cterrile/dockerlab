@@ -70,7 +70,8 @@ steps:
         | awk 'NF' | jq -R . | jq -s .
     output: HOST_LIST
 
-  - call: push-tools-host
+  - name: Push to hosts
+    call: push-tools-host
     parallel:
       items: ${HOST_LIST}
       max_concurrent: 1
