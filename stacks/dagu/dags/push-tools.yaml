@@ -16,8 +16,6 @@ params:
 steps:
   - name: Resolve hosts
     command: |
-      source scripts/resolve-site-hosts.sh
-
       if [ -n "${HOSTS}" ]; then
         echo "${HOSTS}"
       elif [ -n "${WEBHOOK_PAYLOAD}" ]; then
@@ -61,6 +59,7 @@ steps:
         exit 1
       fi
 
+      cd /workspace/dockerlab
       source scripts/resolve-site-hosts.sh
 
       if [ "${RESOLVED_HOSTS}" = "all" ]; then
