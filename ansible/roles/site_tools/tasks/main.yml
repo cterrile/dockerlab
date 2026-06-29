@@ -63,29 +63,3 @@
     mode: "0600"
   when: site_host_config.secrets | default([]) | length > 0
   register: site_tools_env_result
-
-- name: Pull site images — {{ inventory_hostname }}
-  ansible.builtin.command:
-    cmd: "{{ docker_compose_cmd }} pull"
-    chdir: "{{ site_compose_path }}"
-  register: site_tools_pull_result
-  changed_when: "'Pull complete' in site_tools_pull_result.stdout or 'Downloaded' in site_tools_pull_result.stdout"
-
-- name: Deploy site tools — {{ inventory_hostname }}
-  ansible.builtin.command:
-    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
-    chdir: "{{ site_compose_path }}"
-  register: site_tools_deploy_result
-  changed_when: "'Started' in site_tools_deploy_result.stderr or 'Creating' in site_tools_deploy_result.stderr"
-
-- name: Show site containers — {{ inventory_hostname }}
-  ansible.builtin.command:
-    cmd: "{{ docker_compose_cmd }} ps --format json"
-    chdir: "{{ site_compose_path }}"
-  register: site_tools_ps_result
-  changed_when: false
-  failed_when: false
-
-- name: Site tools status — {{ inventory_hostname }}
-  ansible.builtin.debug:
-    msg: "{{ site_tools_ps_result.stdout_lines | default([]) }}"

@@ -86,7 +86,7 @@ handler_on:
 ---
 
 name: push-tools-host
-description: Push scripts and site compose to a single host
+description: Sync scripts and site files to a single host
 
 secrets:
   - name: INFISICAL_TOKEN
