@@ -1,0 +1,20 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/logging
+env_file: true
+secrets:
+  - DOMAIN
+  - GRAFANA_ADMIN_PASSWORD
+  - SEAWEEDFS_ACCESS_KEY
+  - SEAWEEDFS_SECRET_KEY
+  - LOKI_INGEST_USER
+  - LOKI_INGEST_PASSWORD
+docker_volumes:
+  seaweedfs-master-data:
+    backup: true
+  seaweedfs-volume-data:
+    backup: true
+  loki-data:
+    backup: false
+  grafana-data:
+    backup: true
+depends_on_stacks: []

@@ -38,10 +38,38 @@
       - rsync
       - -az
       - --itemize-changes
+      - --exclude=hosts.yml
       - -e
       - "ssh -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=no"
-      - "{{ site_dir }}/docker-compose.yml"
-      - "{{ ansible_user }}@{{ ansible_host }}:{{ site_tools_compose_path }}/docker-compose.yml"
+      - "{{ site_dir }}/"
+      - "{{ ansible_user }}@{{ ansible_host }}:{{ site_tools_compose_path }}/"
   delegate_to: localhost
   register: site_tools_site_sync
   changed_when: site_tools_site_sync.stdout | length > 0
+
+- name: Validate required site secrets — {{ inventory_hostname }}
+  ansible.builtin.assert:
+    that:
+      - lookup('env', item) | length > 0
+    fail_msg: >-
+      Required secret '{{ item }}' is missing or empty for site host '{{ inventory_hostname }}'.
+      Add it to Infisical prod before deploying.
+  loop: "{{ site_host_config.secrets | default([]) }}"
+  when: site_host_config.secrets | default([]) | length > 0
+
+- name: Render site .env from secrets — {{ inventory_hostname }}
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ site_tools_compose_path }}/.env"
+    mode: "0600"
+  when: site_host_config.secrets | default([]) | length > 0
+
+- name: Deploy site compose — {{ inventory_hostname }}
+  ansible.builtin.command:
+    cmd: "{{ docker_compose_cmd }} up -d --remove-orphans"
+    chdir: "{{ site_tools_compose_path }}"
+  register: site_tools_deploy_result
+  changed_when: >
+    'Started' in site_tools_deploy_result.stderr
+    or 'Creating' in site_tools_deploy_result.stderr
+    or 'Recreate' in site_tools_deploy_result.stderr

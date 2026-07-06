@@ -27,6 +27,27 @@ services:
       - EDGE_ID=${PORTAINER_EDGE_ID}
       - EDGE_KEY=${PORTAINER_EDGE_KEY}
 
+  # VPS-only remote log collector — enable with COMPOSE_PROFILES=remote-logging
+  alloy-remote:
+    profiles: ["remote-logging"]
+    image: grafana/alloy:v1.10.0
+    container_name: alloy-remote
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy-remote.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    environment:
+      LOG_HOST_NAME: ${LOG_HOST_NAME}
+      LOKI_INGEST_URL: ${LOKI_INGEST_URL}
+      LOKI_INGEST_USER: ${LOKI_INGEST_USER}
+      LOKI_INGEST_PASSWORD: ${LOKI_INGEST_PASSWORD}
+
 networks:
   pangolin:
     external: true

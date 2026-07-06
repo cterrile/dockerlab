@@ -58,6 +58,19 @@
         enabled: true
         state: started
 
+    - name: Ensure Docker config directory exists
+      ansible.builtin.file:
+        path: /etc/docker
+        state: directory
+        mode: "0755"
+
+    - name: Configure Docker log rotation
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/docker-daemon.json.j2"
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+      notify: Restart docker
+
     - name: Create deploy user
       ansible.builtin.user:
         name: deploy
@@ -98,3 +111,9 @@
     - name: Show Docker version
       ansible.builtin.debug:
         msg: "Docker {{ docker_version.stdout }} installed successfully"
+
+  handlers:
+    - name: Restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted

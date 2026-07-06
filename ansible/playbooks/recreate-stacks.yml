@@ -1,0 +1,63 @@
+---
+# Force-recreate all stacks on a host so containers pick up daemon.json log-opts.
+# Existing containers keep their old log config until recreated.
+#
+# Usage (from artemis via Dagu, or locally with SSH):
+#   ansible-playbook playbooks/recreate-stacks.yml --limit artemis
+
+- name: Force-recreate Docker stacks for log rotation
+  hosts: all
+  vars:
+    artemis_stacks:
+      - actual-budget
+      - dagu
+      - glance
+      - glances
+      - grocy
+      - hermes-agent
+      - infisical
+      - jenkins
+      - logging
+      - mealie
+      - media-service
+      - uptime
+      - vikunja
+    icarus_stacks:
+      - portainer
+      - vaultwarden
+      - whoami
+
+  tasks:
+    - name: Select stacks for this host
+      ansible.builtin.set_fact:
+        host_stacks: >-
+          {{
+            artemis_stacks if inventory_hostname == 'artemis'
+            else icarus_stacks if inventory_hostname == 'icarus'
+            else []
+          }}
+
+    - name: Skip hosts with no managed stacks
+      ansible.builtin.meta: end_host
+      when: host_stacks | length == 0
+
+    - name: Check stack deploy directory exists — {{ item }}
+      ansible.builtin.stat:
+        path: "{{ default_deploy_base }}/{{ item }}/docker-compose.yml"
+      loop: "{{ host_stacks }}"
+      register: stack_dir_stats
+
+    - name: Force-recreate stack containers — {{ item.item }}
+      ansible.builtin.command:
+        cmd: "{{ docker_compose_cmd }} up -d --force-recreate --remove-orphans"
+        chdir: "{{ default_deploy_base }}/{{ item.item }}"
+      loop: "{{ stack_dir_stats.results }}"
+      when: item.stat.exists
+      register: recreate_result
+      changed_when: >
+        recreate_result.stdout is defined and (
+          'Recreate' in recreate_result.stdout
+          or 'Recreate' in recreate_result.stderr
+          or 'Started' in recreate_result.stderr
+        )
+      failed_when: recreate_result.rc is defined and recreate_result.rc != 0
