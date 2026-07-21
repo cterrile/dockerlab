@@ -61,7 +61,7 @@ services:
       - ${TRANSMISSION_DOWNLOAD_PATH}:/downloads
 
   radarr:
-    image: linuxserver/radarr
+    image: linuxserver/radarr:6.3.0.10514-ls312
     container_name: radarr
     restart: unless-stopped
     networks:
