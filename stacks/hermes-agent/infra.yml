@@ -1,10 +1,11 @@
 host: artemis
 deploy_path: /home/deploy/dockerlab/stacks/hermes-agent
-env_file: false
+env_file: true
 docker_volumes: {}
 secrets:
-  - TOGETHER_API_KEY
-  - MC_URL
-  - MC_API_KEY
-  - MEALIE_API_KEY
+  - DOMAIN
+  - HERMES_DASHBOARD_BASIC_AUTH_USERNAME
+  - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD
+  - HERMES_DASHBOARD_BASIC_AUTH_SECRET
+  - HERMES_DASHBOARD_UPSTREAM_AUTH_HEADER
 depends_on_stacks: []
