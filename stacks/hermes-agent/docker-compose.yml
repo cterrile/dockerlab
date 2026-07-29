@@ -17,21 +17,8 @@ services:
       - ~/.hermes:/opt/data
     networks:
       - hermes-net
-      - pangolin
     environment:
       - HERMES_DASHBOARD=1
-      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_BASIC_AUTH_USERNAME}
-      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD}
-      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${HERMES_DASHBOARD_BASIC_AUTH_SECRET}
-    labels:
-      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
-      - pangolin.public-resources.hermes.name=hermes
-      - pangolin.public-resources.hermes.full-domain=hermes.${DOMAIN}
-      - pangolin.public-resources.hermes.protocol=http
-      - pangolin.public-resources.hermes.targets[0].hostname=hermes
-      - pangolin.public-resources.hermes.targets[0].port=9119
-      - pangolin.public-resources.hermes.targets[0].path=/
-      - pangolin.public-resources.hermes.targets[0].method=http
     deploy:
       resources:
         limits:
@@ -76,7 +63,5 @@ volumes:
   mc-data:
 
 networks:
-  pangolin:
-    external: true
   hermes-net:
     driver: bridge
