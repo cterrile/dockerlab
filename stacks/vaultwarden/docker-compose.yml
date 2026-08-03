@@ -1,6 +1,6 @@
 services:
   bitwarden:
-    image: vaultwarden/server
+    image: vaultwarden/server:1.24.0
     container_name: bitwarden
     restart: always
     networks:
