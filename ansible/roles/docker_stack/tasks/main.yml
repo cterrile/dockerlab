@@ -50,6 +50,22 @@
   when: stack_infra.env_file | default(false)
   register: docker_stack_env_result
 
+- name: Check for existing external Docker volumes — {{ docker_stack_name }}
+  ansible.builtin.command:
+    cmd: "docker volume inspect {{ item.key }}"
+  loop: "{{ stack_infra.docker_volumes | default({}) | dict2items }}"
+  register: docker_stack_volume_check
+  changed_when: false
+  failed_when: false
+
+- name: Create missing external Docker volumes — {{ docker_stack_name }}
+  ansible.builtin.command:
+    cmd: "docker volume create {{ item.item.key }}"
+  loop: "{{ docker_stack_volume_check.results }}"
+  when: item.rc != 0
+  register: docker_stack_volume_create
+  changed_when: true
+
 - name: Check for Dockerfile — {{ docker_stack_name }}
   ansible.builtin.stat:
     path: "{{ docker_stack_deploy_path }}/Dockerfile"
