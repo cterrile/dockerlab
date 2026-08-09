@@ -1,0 +1,13 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/monica
+env_file: true
+secrets:
+  - DOMAIN
+  - MONICA_APP_KEY
+  - MONICA_DB_PASSWORD
+docker_volumes:
+  monica-data:
+    backup: true
+  monica-mariadb:
+    backup: true
+depends_on_stacks: []
