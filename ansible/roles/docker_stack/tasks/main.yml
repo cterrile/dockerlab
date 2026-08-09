@@ -50,6 +50,28 @@
   when: stack_infra.env_file | default(false)
   register: docker_stack_env_result
 
+- name: Check for existing external Docker volumes — {{ docker_stack_name }}
+  # Probe each volume; rc==0 means it exists. We never remove or overwrite —
+  # the create task below only runs for volumes that are genuinely missing,
+  # so existing data is never touched.
+  ansible.builtin.command:
+    cmd: "docker volume inspect {{ item.key }}"
+  loop: "{{ stack_infra.docker_volumes | default({}) | dict2items }}"
+  register: docker_stack_volume_check
+  changed_when: false
+  failed_when: false
+
+- name: Create missing external Docker volumes — {{ docker_stack_name }}
+  # Only runs when the inspect above failed (rc != 0), i.e. the volume does
+  # not exist. docker volume create never destroys data; on an existing
+  # volume it errors "already exists" — and we never reach that path.
+  ansible.builtin.command:
+    cmd: "docker volume create {{ item.item.key }}"
+  loop: "{{ docker_stack_volume_check.results }}"
+  when: item.rc != 0
+  register: docker_stack_volume_create
+  changed_when: true
+
 - name: Check for Dockerfile — {{ docker_stack_name }}
   ansible.builtin.stat:
     path: "{{ docker_stack_deploy_path }}/Dockerfile"
