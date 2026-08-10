@@ -1,0 +1,17 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/rolodexter
+env_file: true
+secrets:
+  - DOMAIN
+  - ROLODEXTER_DB_PASSWORD
+  - ROLODEXTER_SECRET_KEY
+registry_auth:
+  registry: registry.christerrile.com
+  username_secret: REGISTRY_USERNAME
+  password_secret: REGISTRY_PASSWORD
+docker_volumes:
+  rolodexter-media:
+    backup: true
+  rolodexter-pgdata:
+    backup: true
+depends_on_stacks: []

@@ -77,6 +77,37 @@
     path: "{{ docker_stack_deploy_path }}/Dockerfile"
   register: docker_stack_dockerfile
 
+- name: Validate registry auth secrets — {{ docker_stack_name }}
+  ansible.builtin.assert:
+    that:
+      - lookup('env', stack_infra.registry_auth.username_secret) | length > 0
+      - lookup('env', stack_infra.registry_auth.password_secret) | length > 0
+      - stack_infra.registry_auth.registry | length > 0
+    fail_msg: >-
+      registry_auth is set for stack '{{ docker_stack_name }}' but
+      '{{ stack_infra.registry_auth.username_secret }}' /
+      '{{ stack_infra.registry_auth.password_secret }}' / registry host
+      is missing. Add the credentials to Infisical prod before deploying.
+  when: stack_infra.registry_auth is defined
+
+- name: Login to private registry — {{ docker_stack_name }}
+  # Required before compose pull when the stack references a private registry
+  # image (e.g. registry.christerrile.com/...). Credentials stay out of .env;
+  # they are only used for this login. no_log avoids leaking the password.
+  ansible.builtin.command:
+    argv:
+      - docker
+      - login
+      - "{{ stack_infra.registry_auth.registry }}"
+      - -u
+      - "{{ lookup('env', stack_infra.registry_auth.username_secret) }}"
+      - --password-stdin
+    stdin: "{{ lookup('env', stack_infra.registry_auth.password_secret) }}"
+  when: stack_infra.registry_auth is defined
+  no_log: true
+  register: docker_stack_registry_login
+  changed_when: "'Login Succeeded' in docker_stack_registry_login.stdout"
+
 - name: Build images — {{ docker_stack_name }}
   ansible.builtin.command:
     cmd: "{{ docker_compose_cmd }} build"
