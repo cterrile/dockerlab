@@ -30,15 +30,20 @@ need docker
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-HTTP_SECRET="$(openssl rand -hex 32)"
-
-ADMIN_PW="$(openssl rand -base64 24)"
-UI_PW="$(openssl rand -base64 24)"
-CI_JENKINS_PW="$(openssl rand -base64 24)"
-CI_GITHUB_PW="$(openssl rand -base64 24)"
-
 # bcrypt htpasswd via the httpd image (macOS has no htpasswd). Passwords are
 # passed as container env, not host cmdline args.
+#
+# Passwords are generated from a pure alphanumeric alphabet (A-Za-z0-9) — no
+# '/', '+', or '=' — so they survive copy/paste, shells, URLs, and Infisical
+# fields without escaping issues.
+rand_pw() { openssl rand 48 | base64 | tr -dc 'A-Za-z0-9' | head -c 32; }
+
+HTTP_SECRET="$(openssl rand -hex 32)"
+
+ADMIN_PW="$(rand_pw)"
+UI_PW="$(rand_pw)"
+CI_JENKINS_PW="$(rand_pw)"
+CI_GITHUB_PW="$(rand_pw)"
 docker run --rm \
   -v "$WORK:/work" \
   -e ADMIN_PW -e UI_PW -e CI_JENKINS_PW -e CI_GITHUB_PW \
