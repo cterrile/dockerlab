@@ -4,11 +4,12 @@ services:
     container_name: registry-init
     restart: "no"
     # Materialize the htpasswd file from the REGISTRY_HTPASSWD secret onto a
-    # shared volume so the registry can read it read-only. Re-runs on every
-    # `compose up` (env change recreates this container), so secret rotation
-    # just needs a redeploy.
+    # shared volume so the registry can read it read-only. The secret is stored
+    # base64-encoded (single line) so it survives the .env single-line format;
+    # we decode it here. Re-runs on every `compose up` (env change recreates
+    # this container), so secret rotation just needs a redeploy.
     command: >-
-      sh -c 'printf "%s\n" "$$REGISTRY_HTPASSWD" > /auth/htpasswd
+      sh -c 'printf "%s" "$$REGISTRY_HTPASSWD" | base64 -d > /auth/htpasswd
       && chmod 600 /auth/htpasswd'
     environment:
       - REGISTRY_HTPASSWD=${REGISTRY_HTPASSWD}

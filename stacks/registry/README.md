@@ -30,7 +30,17 @@ docker run --rm --entrypoint htpasswd httpd:2.4 -Bbn ui 'PASSWORD' >> htpasswd
 # ...admin, ci-jenkins, ci-github...
 ```
 
-Then paste the full file contents into the `REGISTRY_HTPASSWD` Infisical secret and redeploy the stack. The `registry-init` container rewrites `/auth/htpasswd` on every `compose up`, so rotation is: edit secret → deploy.
+Then **base64-encode** the whole file (so it's a single line — the `.env` format can't hold raw newlines) and store it:
+
+```bash
+base64 < htpasswd | tr -d '\n' | infisical secrets set REGISTRY_HTPASSWD=@- \
+  --domain https://infisical.christerrile.com \
+  --token "$INFISICAL_TOKEN" \
+  --projectId f217186f-b64f-4e05-ac49-2af700a2cc5c \
+  --env prod
+```
+
+(`@-` reads the value from stdin.) The `registry-init` container base64-decodes it back into `/auth/htpasswd` on every `compose up`, so rotation is: edit secret → deploy. To rotate a single account, regenerate the htpasswd with the new password for that account (keep the other lines as-is) and re-set the secret.
 
 Initial accounts: `admin` (CLI/ops), `ui` (UI browser login), `ci-jenkins`, `ci-github`.
 
