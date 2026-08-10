@@ -56,6 +56,28 @@ docker run --rm \
 
 HTPASSWD_B64="$(base64 < "$WORK/htpasswd" | tr -d '\n')"
 
+# Self-verify: confirm each generated password actually authenticates
+# against the htpasswd we just built. If any line below says FAILED, the
+# script itself is broken — do not use the output.
+docker run --rm \
+  -v "$WORK:/work" \
+  -e ADMIN_PW -e UI_PW -e CI_JENKINS_PW -e CI_GITHUB_PW \
+  --entrypoint sh httpd:2.4 -c '
+    for u in admin ui ci-jenkins ci-github; do
+      case "$u" in
+        admin)      p="$ADMIN_PW" ;;
+        ui)         p="$UI_PW" ;;
+        ci-jenkins) p="$CI_JENKINS_PW" ;;
+        ci-github)  p="$CI_GITHUB_PW" ;;
+      esac
+      if htpasswd -vb /work/htpasswd "$u" "$p" >/dev/null 2>&1; then
+        echo "$u: verified"
+      else
+        echo "$u: FAILED"
+      fi
+    done
+  '
+
 cat <<EOF
 
 === Set these in Infisical (prod) ===
