@@ -1,0 +1,61 @@
+services:
+  rolodexter:
+    image: registry.christerrile.com/rolodexter/app:latest
+    container_name: rolodexter
+    restart: unless-stopped
+    depends_on:
+      rolodexter-db:
+        condition: service_healthy
+    networks:
+      - rolodexter
+      - pangolin
+    environment:
+      FLASK_DEBUG: "0"
+      SECRET_KEY: ${ROLODEXTER_SECRET_KEY}
+      BASE_DOMAIN: ${DOMAIN}
+      SERVER_NAME: rolodexter.${DOMAIN}
+      DATABASE_URL: postgresql://rolodexter:${ROLODEXTER_DB_PASSWORD}@rolodexter-db:5432/rolodexter
+      REGISTRATION_ENABLED: ${ROLODEXTER_REGISTRATION_ENABLED:-false}
+      APP_TIMEZONE: America/Los_Angeles
+    volumes:
+      - rolodexter-media:/home/rolodexter/instance/media
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.rolodexter.name=rolodexter
+      - pangolin.public-resources.rolodexter.full-domain=rolodexter.${DOMAIN}
+      - pangolin.public-resources.rolodexter.protocol=http
+      - pangolin.public-resources.rolodexter.targets[0].hostname=rolodexter
+      - pangolin.public-resources.rolodexter.targets[0].port=5000
+      - pangolin.public-resources.rolodexter.targets[0].path=/
+      - pangolin.public-resources.rolodexter.targets[0].method=http
+
+  rolodexter-db:
+    image: postgres:16
+    container_name: rolodexter-db
+    restart: unless-stopped
+    networks:
+      - rolodexter
+    environment:
+      POSTGRES_USER: rolodexter
+      POSTGRES_PASSWORD: ${ROLODEXTER_DB_PASSWORD}
+      POSTGRES_DB: rolodexter
+    volumes:
+      - rolodexter-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U rolodexter -d rolodexter"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  rolodexter-media:
+    external: true
+  rolodexter-pgdata:
+    external: true
+
+networks:
+  pangolin:
+    external: true
+  rolodexter:
+    driver: bridge
