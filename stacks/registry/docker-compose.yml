@@ -1,0 +1,101 @@
+services:
+  registry-init:
+    image: busybox:1.36
+    container_name: registry-init
+    restart: "no"
+    # Materialize the htpasswd file from the REGISTRY_HTPASSWD secret onto a
+    # shared volume so the registry can read it read-only. The secret is stored
+    # base64-encoded (single line) so it survives the .env single-line format;
+    # we decode it here. Re-runs on every `compose up` (env change recreates
+    # this container), so secret rotation just needs a redeploy.
+    command: >-
+      sh -c 'printf "%s" "$$REGISTRY_HTPASSWD" | base64 -d > /auth/htpasswd
+      && chmod 600 /auth/htpasswd'
+    environment:
+      - REGISTRY_HTPASSWD=${REGISTRY_HTPASSWD}
+    volumes:
+      - registry-auth:/auth
+
+  registry:
+    image: registry:2
+    container_name: registry
+    restart: unless-stopped
+    depends_on:
+      registry-init:
+        condition: service_completed_successfully
+    networks:
+      - registry
+      - pangolin
+    volumes:
+      - registry-data:/var/lib/registry
+      - registry-auth:/auth:ro
+    environment:
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - REGISTRY_HTTP_SECRET=${REGISTRY_HTTP_SECRET}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      # No SSO here: the docker client authenticates with HTTP Basic (htpasswd),
+      # which cannot go through a browser OIDC redirect. Pangolin only does TLS + routing.
+      - pangolin.public-resources.registry.name=registry
+      - pangolin.public-resources.registry.full-domain=registry.${DOMAIN}
+      - pangolin.public-resources.registry.protocol=http
+      - pangolin.public-resources.registry.targets[0].hostname=registry
+      - pangolin.public-resources.registry.targets[0].port=5000
+      - pangolin.public-resources.registry.targets[0].path=/
+      - pangolin.public-resources.registry.targets[0].method=http
+
+  registry-ui:
+    image: joxit/docker-registry-ui:2
+    container_name: registry-ui
+    restart: unless-stopped
+    networks:
+      - registry
+      - pangolin
+    environment:
+      # Proxy /v2/ through the UI's nginx so the browser only talks to the UI
+      # origin (same-origin) — no CORS config needed on the registry.
+      - NGINX_PROXY_PASS_URL=http://registry:5000
+      # Re-resolve the registry container IP if it gets recreated (avoids stale IPs).
+      - NGINX_RESOLVER=127.0.0.11
+      - SINGLE_REGISTRY=true
+      - REGISTRY_TITLE=christerrile registry
+      - REGISTRY_SECURED=true
+      - DELETE_IMAGES=true
+      - SHOW_CONTENT_DIGEST=true
+      # Shown on copied `docker pull` commands — point users at the real registry domain.
+      - PULL_URL=https://registry.${DOMAIN}
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      # SSO at the edge gates human access to the UI. The UI then proxies to the
+      # registry; the browser will prompt for HTTP Basic auth (a registry account)
+      # on the first /v2/ call and cache it.
+      - pangolin.public-resources.registry-ui.name=registry-ui
+      - pangolin.public-resources.registry-ui.full-domain=registry-ui.${DOMAIN}
+      - pangolin.public-resources.registry-ui.protocol=http
+      - pangolin.public-resources.registry-ui.targets[0].hostname=registry-ui
+      - pangolin.public-resources.registry-ui.targets[0].port=80
+      - pangolin.public-resources.registry-ui.targets[0].path=/
+      - pangolin.public-resources.registry-ui.targets[0].method=http
+      - pangolin.public-resources.registry-ui.auth.sso-enabled=true
+
+volumes:
+  registry-data:
+    external: true
+  registry-auth:
+
+networks:
+  pangolin:
+    external: true
+  registry:
+    driver: bridge

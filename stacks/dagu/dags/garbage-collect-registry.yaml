@@ -1,0 +1,23 @@
+description: Weekly garbage collection for the registry stack (reclaims space after image deletes)
+schedule: "0 3 * * 0"
+type: graph
+overlap_policy: skip
+timeout_sec: 1800
+
+params:
+  - REGISTRY_CONTAINER: registry
+  - REGISTRY_CONFIG: /etc/docker/registry/config.yml
+
+steps:
+  - id: gc_registry
+    name: Run registry garbage-collect (delete untagged)
+    command: |
+      docker exec "${REGISTRY_CONTAINER}" \
+        registry garbage-collect "${REGISTRY_CONFIG}" --delete-untagged
+      echo "Garbage collection completed for ${REGISTRY_CONTAINER}"
+
+handler_on:
+  failure:
+    command: echo "[FAILED] Registry garbage collection"
+  success:
+    command: echo "[OK] Registry garbage collection completed"
