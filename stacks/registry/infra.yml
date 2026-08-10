@@ -1,0 +1,11 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/registry
+env_file: true
+secrets:
+  - DOMAIN
+  - REGISTRY_HTPASSWD
+  - REGISTRY_HTTP_SECRET
+docker_volumes:
+  registry-data:
+    backup: true
+depends_on_stacks: []
