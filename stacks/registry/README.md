@@ -24,23 +24,9 @@ The plaintext passwords for each account are **not** stored by this stack — ke
 
 ## Generating / rotating the htpasswd
 
-```bash
-# Add or update the `ui` account (repeat per account, appending to one file)
-docker run --rm --entrypoint htpasswd httpd:2.4 -Bbn ui 'PASSWORD' >> htpasswd
-# ...admin, ci-jenkins, ci-github...
-```
+Run `scripts/generate-secrets.sh` from this stack directory (requires local Docker). It prints the two Infisical secret values to set, plus the plaintext account passwords to store in your password manager — it does **not** call the Infisical CLI, so paste the printed `REGISTRY_HTTP_SECRET` and `REGISTRY_HTPASSWD` into the Infisical UI (prod env) yourself.
 
-Then **base64-encode** the whole file (so it's a single line — the `.env` format can't hold raw newlines) and store it:
-
-```bash
-base64 < htpasswd | tr -d '\n' | infisical secrets set REGISTRY_HTPASSWD=@- \
-  --domain https://infisical.christerrile.com \
-  --token "$INFISICAL_TOKEN" \
-  --projectId f217186f-b64f-4e05-ac49-2af700a2cc5c \
-  --env prod
-```
-
-(`@-` reads the value from stdin.) The `registry-init` container base64-decodes it back into `/auth/htpasswd` on every `compose up`, so rotation is: edit secret → deploy. To rotate a single account, regenerate the htpasswd with the new password for that account (keep the other lines as-is) and re-set the secret.
+The `registry-init` container base64-decodes `REGISTRY_HTPASSWD` back into `/auth/htpasswd` on every `compose up`, so rotation is: re-run the script (or edit one account's line in the htpasswd) → update the Infisical secret → deploy.
 
 Initial accounts: `admin` (CLI/ops), `ui` (UI browser login), `ci-jenkins`, `ci-github`.
 
