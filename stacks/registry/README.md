@@ -17,24 +17,24 @@ The registry API deliberately has **no Pangolin SSO** because `docker login`/pus
 Set these in Infisical prod for this stack (listed in `infra.yml`):
 
 - `DOMAIN` — base domain (shared).
-- `REGISTRY_HTPASSWD` — full htpasswd file content (bcrypt), multiline. See below.
+- `REGISTRY_HTPASSWD` — base64-encoded htpasswd file (single line, so it survives the `.env` single-line format). `registry-init` decodes it to `/auth/htpasswd` on startup. See below.
 - `REGISTRY_HTTP_SECRET` — random string used by the registry for signed state.
 
-The plaintext passwords for each account are **not** stored by this stack — keep them in Infisical separately (e.g. `REGISTRY_PASSWORD_<ACCOUNT>`) so you can look them up to log in or hand to CI.
+The plaintext admin password is **not** stored by this stack — keep it in your password manager (and/or a separate Infisical secret) so you can look it up to log in or hand to CI.
 
 ## Generating / rotating the htpasswd
 
 Run `scripts/generate-secrets.sh` from this stack directory (requires local Docker). It prints the two Infisical secret values to set, plus the plaintext account passwords to store in your password manager — it does **not** call the Infisical CLI, so paste the printed `REGISTRY_HTTP_SECRET` and `REGISTRY_HTPASSWD` into the Infisical UI (prod env) yourself.
 
-The `registry-init` container base64-decodes `REGISTRY_HTPASSWD` back into `/auth/htpasswd` on every `compose up`, so rotation is: re-run the script (or edit one account's line in the htpasswd) → update the Infisical secret → deploy.
+The `registry-init` container base64-decodes `REGISTRY_HTPASSWD` back into `/auth/htpasswd` on every `compose up`, so rotation is: re-run the script → update the `REGISTRY_HTPASSWD` Infisical secret → deploy.
 
-Initial accounts: `admin` (CLI/ops), `ui` (UI browser login), `ci-jenkins`, `ci-github`.
+Initial account: `admin` (used for CLI/ops, the UI browser basic-auth prompt, and CI). To add more accounts later (e.g. separate CI service accounts), append additional `htpasswd -Bbn <user> <pw>` lines to the script and re-base64 the file.
 
 ## CI usage
 
 ```bash
-docker login registry.${DOMAIN} -u ci-jenkins   # Jenkins: cred sourced from Infisical
-# GitHub Actions: REGISTRY_USERNAME / REGISTRY_PASSWORD repo secrets = ci-github account
+docker login registry.${DOMAIN} -u admin   # password from your password manager / Infisical
+# GitHub Actions: REGISTRY_USERNAME / REGISTRY_PASSWORD repo secrets = admin account
 docker build -t registry.${DOMAIN}/<repo>/<image>:<sha> .
 docker push    registry.${DOMAIN}/<repo>/<image>:<sha>
 ```
@@ -48,8 +48,7 @@ Deleting an image (from the UI or API) only removes the manifest reference; the 
 ## Auth model & limitations
 
 - htpasswd has **no per-repo RBAC** — any valid account can push/pull/delete anywhere. We get independent credentials + rotation, not access isolation. If per-repo ACLs are ever needed, swap htpasswd for `cesanta/docker_auth` (single container, ACLs in a committed YAML file, scoped tokens, same htpasswd backend).
-- The `ui` account is separate from `admin` so the browser-cached cred can be rotated independently of the CLI admin cred.
-- Trust model: anyone who passes Pangolin SSO can reach the UI and then use a registry account. Only trusted users should be in Pangolin SSO for this domain.
+- Trust model: anyone who passes Pangolin SSO can reach the UI and then use the `admin` registry account. Only trusted users should be in Pangolin SSO for this domain. When you add separate CI service accounts, give CI its own credentials rather than reusing `admin`.
 
 ## Future: S3 storage
 
