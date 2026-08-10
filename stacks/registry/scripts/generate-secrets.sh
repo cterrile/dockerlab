@@ -3,7 +3,7 @@
 #
 # Run this on your own machine (requires Docker for the bcrypt htpasswd step).
 # It prints the two secret values to set in Infisical, plus the plaintext
-# account passwords to store in your password manager. It does NOT call the
+# admin password to store in your password manager. It does NOT call the
 # Infisical CLI — paste the printed values into the Infisical UI yourself
 # (prod env, project f217186f-b64f-4e05-ac49-2af700a2cc5c).
 #
@@ -12,15 +12,14 @@
 #                           survives the .env single-line format). The stack's
 #                           registry-init container decodes it at startup.
 #
-# Accounts created: admin, ui, ci-jenkins, ci-github.
-#   ui          — log into the UI (browser basic-auth prompt)
-#   ci-jenkins  — Jenkins credential store
-#   ci-github   — GitHub Actions repo secret (REGISTRY_USERNAME / REGISTRY_PASSWORD)
-#   admin       — CLI / ops
+# Account created: admin (used for CLI, the UI basic-auth prompt, and CI).
+# We intentionally start with a single account to keep auth debugging simple.
+# To add more accounts later (e.g. separate CI service accounts), append
+# additional `htpasswd -Bbn <user> <pw>` lines and re-base64 the file.
 #
-# Re-running regenerates EVERYTHING (new secret + new passwords). To rotate a
-# single account while keeping the others, keep the existing htpasswd lines and
-# only regenerate that one account's line, then re-base64 and re-set the secret.
+# Re-running regenerates EVERYTHING (new secret + new password). To rotate
+# only the admin password while keeping the HTTP secret, leave
+# REGISTRY_HTTP_SECRET alone and only re-set REGISTRY_HTPASSWD.
 set -euo pipefail
 
 need() { command -v "$1" >/dev/null || { echo "missing dependency: $1" >&2; exit 1; }; }
@@ -30,52 +29,43 @@ need docker
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# bcrypt htpasswd via the httpd image (macOS has no htpasswd). Passwords are
-# passed as container env, not host cmdline args.
+# bcrypt htpasswd via the httpd image (macOS has no htpasswd). The password is
+# passed as container env, not a host cmdline arg.
 #
-# Passwords are generated from a pure alphanumeric alphabet (A-Za-z0-9) — no
-# '/', '+', or '=' — so they survive copy/paste, shells, URLs, and Infisical
+# The password is generated from a pure alphanumeric alphabet (A-Za-z0-9) —
+# no '/', '+', or '=' — so it survives copy/paste, shells, URLs, and Infisical
 # fields without escaping issues.
 rand_pw() { openssl rand 48 | base64 | tr -dc 'A-Za-z0-9' | head -c 32; }
 
 HTTP_SECRET="$(openssl rand -hex 32)"
-
 ADMIN_PW="$(rand_pw)"
-UI_PW="$(rand_pw)"
-CI_JENKINS_PW="$(rand_pw)"
-CI_GITHUB_PW="$(rand_pw)"
+
+# NOTE: pass each password with -e VAR="$VAR" (explicit value), NOT -e VAR.
+# `VAR="$(rand_pw)"` creates a non-exported shell variable, so `docker run -e VAR`
+# (no value) has nothing to inherit and would pass an EMPTY password — the hash
+# would silently be built for "" while the script prints the real password, and
+# the self-verify (also empty) would falsely report "verified".
 docker run --rm \
   -v "$WORK:/work" \
-  -e ADMIN_PW -e UI_PW -e CI_JENKINS_PW -e CI_GITHUB_PW \
+  -e ADMIN_PW="$ADMIN_PW" \
   --entrypoint sh httpd:2.4 -c '
-    htpasswd -Bbn admin       "$ADMIN_PW"      >> /work/htpasswd
-    htpasswd -Bbn ui          "$UI_PW"         >> /work/htpasswd
-    htpasswd -Bbn ci-jenkins  "$CI_JENKINS_PW" >> /work/htpasswd
-    htpasswd -Bbn ci-github   "$CI_GITHUB_PW"  >> /work/htpasswd
+    htpasswd -Bbn admin "$ADMIN_PW" >> /work/htpasswd
   '
 
 HTPASSWD_B64="$(base64 < "$WORK/htpasswd" | tr -d '\n')"
 
-# Self-verify: confirm each generated password actually authenticates
-# against the htpasswd we just built. If any line below says FAILED, the
-# script itself is broken — do not use the output.
+# Self-verify: confirm the generated password actually authenticates against
+# the htpasswd we just built. If the line below says FAILED, the script itself
+# is broken — do not use the output.
 docker run --rm \
   -v "$WORK:/work" \
-  -e ADMIN_PW -e UI_PW -e CI_JENKINS_PW -e CI_GITHUB_PW \
+  -e ADMIN_PW="$ADMIN_PW" \
   --entrypoint sh httpd:2.4 -c '
-    for u in admin ui ci-jenkins ci-github; do
-      case "$u" in
-        admin)      p="$ADMIN_PW" ;;
-        ui)         p="$UI_PW" ;;
-        ci-jenkins) p="$CI_JENKINS_PW" ;;
-        ci-github)  p="$CI_GITHUB_PW" ;;
-      esac
-      if htpasswd -vb /work/htpasswd "$u" "$p" >/dev/null 2>&1; then
-        echo "$u: verified"
-      else
-        echo "$u: FAILED"
-      fi
-    done
+    if htpasswd -vb /work/htpasswd admin "$ADMIN_PW" >/dev/null 2>&1; then
+      echo "admin: verified"
+    else
+      echo "admin: FAILED"
+    fi
   '
 
 cat <<EOF
@@ -84,9 +74,6 @@ cat <<EOF
 REGISTRY_HTTP_SECRET=${HTTP_SECRET}
 REGISTRY_HTPASSWD=${HTPASSWD_B64}
 
-=== Account passwords — store in your password manager ===
-admin       = ${ADMIN_PW}
-ui          = ${UI_PW}
-ci-jenkins  = ${CI_JENKINS_PW}
-ci-github   = ${CI_GITHUB_PW}
+=== Account password — store in your password manager ===
+admin = ${ADMIN_PW}
 EOF
