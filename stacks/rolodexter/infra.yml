@@ -5,6 +5,7 @@ secrets:
   - DOMAIN
   - ROLODEXTER_DB_PASSWORD
   - ROLODEXTER_SECRET_KEY
+  - ROLODEXTER_REGISTRATION_ENABLED
 registry_auth:
   registry: registry.christerrile.com
   username_secret: REGISTRY_USERNAME
