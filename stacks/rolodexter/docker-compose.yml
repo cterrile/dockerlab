@@ -17,6 +17,9 @@ services:
       DATABASE_URL: postgresql://rolodexter:${ROLODEXTER_DB_PASSWORD}@rolodexter-db:5432/rolodexter
       REGISTRATION_ENABLED: ${ROLODEXTER_REGISTRATION_ENABLED:-false}
       APP_TIMEZONE: America/Los_Angeles
+      # Google OAuth (Sign in with Google). No-op unless both are set.
+      GOOGLE_CLIENT_ID: ${ROLODEXTER_GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${ROLODEXTER_GOOGLE_CLIENT_SECRET}
     volumes:
       - rolodexter-media:/home/rolodexter/instance/media
     labels:
