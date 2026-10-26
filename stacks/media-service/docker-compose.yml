@@ -61,7 +61,7 @@ services:
       - ${TRANSMISSION_DOWNLOAD_PATH}:/downloads
 
   radarr:
-    image: linuxserver/radarr:6.4.4.10685-ls324
+    image: linuxserver/radarr:latest
     container_name: radarr
     restart: unless-stopped
     networks:
@@ -88,7 +88,7 @@ services:
       - pangolin.public-resources.radarr.targets[0].method=http
 
   sonarr:
-    image: linuxserver/sonarr:4.0.20.3014-ls1
+    image: linuxserver/sonarr:latest
     container_name: sonarr
     restart: unless-stopped
     networks:
