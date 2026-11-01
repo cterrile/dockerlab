@@ -1,0 +1,10 @@
+host: icarus
+deploy_path: /home/deploy/dockerlab/stacks/pocket-id
+env_file: true
+secrets:
+  - DOMAIN
+  - POCKET_ID_ENCRYPTION_KEY
+docker_volumes:
+  pocket-id-data:
+    backup: true
+depends_on_stacks: []
