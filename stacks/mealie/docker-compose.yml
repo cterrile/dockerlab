@@ -1,6 +1,6 @@
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v3.29.0 # 
+    image: ghcr.io/mealie-recipes/mealie:latest
     container_name: mealie
     restart: always
     networks:
@@ -41,7 +41,7 @@ services:
       # OpenAI Settings (Using custom provider)
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_MODEL: zai-org/GLM-5.1
+      OPENAI_MODEL: zai-org/GLM-5.3
       OPENAI_AUDIO_MODEL: openai/whisper-large-v3
     depends_on:
       mealie-db:
