@@ -10,6 +10,8 @@ secrets:
   - SMTP_PASSWORD
   - OPENAI_BASE_URL
   - OPENAI_API_KEY
+  - MEALIE_OIDC_CLIENT_ID
+  - MEALIE_OIDC_CLIENT_SECRET
 docker_volumes:
   mealie-data:
     backup: true

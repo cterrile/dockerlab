@@ -22,7 +22,7 @@ services:
       TZ: America/Los_Angeles
       MAX_WORKERS: 1
       WEB_CONCURRENCY: 1
-      BASE_URL: cookbook.${DOMAIN}
+      BASE_URL: https://cookbook.${DOMAIN}
       # Database Settings
       DB_ENGINE: postgres
       POSTGRES_USER: mealie
@@ -38,6 +38,14 @@ services:
       SMTP_AUTH_STRATEGY: 'NONE'
       SMTP_FROM_NAME: Mealie
       SMTP_FROM_EMAIL: cookbook@${DOMAIN}
+      # OpenID Connect (Pocket ID)
+      OIDC_AUTH_ENABLED: "true"
+      OIDC_SIGNUP_ENABLED: "true"
+      OIDC_CONFIGURATION_URL: https://pocket-id.${DOMAIN}/.well-known/openid-configuration
+      OIDC_CLIENT_ID: ${MEALIE_OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${MEALIE_OIDC_CLIENT_SECRET}
+      OIDC_PROVIDER_NAME: Pocket ID
+      OIDC_REMEMBER_ME: "true"
       # OpenAI Settings (Using custom provider)
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
