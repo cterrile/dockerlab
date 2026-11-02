@@ -63,7 +63,36 @@ services:
       - pangolin.public-resources.mealie.targets[0].hostname=mealie
       - pangolin.public-resources.mealie.targets[0].port=9000
       - pangolin.public-resources.mealie.targets[0].path=/
-      - pangolin.public-resources.mealie.targets[0].method=http  
+      - pangolin.public-resources.mealie.targets[0].method=http
+
+  mealie-mcp:
+    build: .
+    image: mealie-mcp:local
+    container_name: mealie-mcp
+    restart: always
+    depends_on:
+      - mealie
+    networks:
+      - mealie
+      - pangolin
+    volumes:
+      - mealie-mcp-data:/data
+    environment:
+      MEALIE_URL: http://mealie:9000
+      PUBLIC_URL: https://mealie-mcp.${DOMAIN}
+      POCKET_ID_ISSUER: https://pocket-id.${DOMAIN}
+      POCKET_ID_CLIENT_ID: ${MEALIE_MCP_POCKET_ID_CLIENT_ID}
+      POCKET_ID_CLIENT_SECRET: ${MEALIE_MCP_POCKET_ID_CLIENT_SECRET}
+      MCP_DATA_DIR: /data
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.mealie-mcp.name=mealie-mcp
+      - pangolin.public-resources.mealie-mcp.full-domain=mealie-mcp.${DOMAIN}
+      - pangolin.public-resources.mealie-mcp.protocol=http
+      - pangolin.public-resources.mealie-mcp.targets[0].hostname=mealie-mcp
+      - pangolin.public-resources.mealie-mcp.targets[0].port=8000
+      - pangolin.public-resources.mealie-mcp.targets[0].path=/
+      - pangolin.public-resources.mealie-mcp.targets[0].method=http
 
   mealie-db:
     container_name: mealie-postgres
@@ -88,6 +117,8 @@ volumes:
   mealie-data:
     external: true
   mealie-pgdata:
+    external: true
+  mealie-mcp-data:
     external: true
 
 networks:
