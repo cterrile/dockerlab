@@ -12,9 +12,13 @@ secrets:
   - OPENAI_API_KEY
   - MEALIE_OIDC_CLIENT_ID
   - MEALIE_OIDC_CLIENT_SECRET
+  - MEALIE_MCP_POCKET_ID_CLIENT_ID
+  - MEALIE_MCP_POCKET_ID_CLIENT_SECRET
 docker_volumes:
   mealie-data:
     backup: true
   mealie-pgdata:
+    backup: true
+  mealie-mcp-data:
     backup: true
 depends_on_stacks: []
