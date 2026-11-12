@@ -5,20 +5,36 @@
 # the host tagged "gateway_host" — override with --extra-vars or by
 # setting the variable in group_vars.
 #
+# Files land in the deploy user's home. rsync and compose run as that
+# user. Only directory setup, package install, and a one-time copy from
+# the old /opt/gateway path use privilege.
+#
 # Required env vars: DOMAIN, PANGOLIN_SECRET, LETSENCRYPT_EMAIL
 
 - name: Deploy Pangolin gateway
   hosts: "{{ gateway_target_host | default('gaia') }}"
-  become: true
   vars:
-    gateway_deploy_path: /opt/gateway
+    gateway_deploy_path: /home/deploy/dockerlab/gateway
+    gateway_legacy_path: /opt/gateway
 
   tasks:
+    - name: Ensure deploy base directory exists
+      ansible.builtin.file:
+        path: /home/deploy/dockerlab
+        state: directory
+        owner: deploy
+        group: docker
+        mode: "0750"
+      become: true
+
     - name: Ensure deploy directory exists
       ansible.builtin.file:
         path: "{{ gateway_deploy_path }}"
         state: directory
+        owner: deploy
+        group: docker
         mode: "0750"
+      become: true
 
     - name: Sync gateway files to host
       ansible.builtin.command:
@@ -28,7 +44,10 @@
           - --itemize-changes
           - --delete
           - --exclude=config/config.yml
+          - --exclude=config/db
+          - --exclude=config/key
           - --exclude=config/letsencrypt
+          - --exclude=config/logs
           - --exclude=.env
           - -e
           - "ssh -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=no"
@@ -37,6 +56,55 @@
       delegate_to: localhost
       register: sync_result
       changed_when: sync_result.stdout | length > 0
+
+    - name: Check for legacy Pangolin config
+      ansible.builtin.stat:
+        path: "{{ gateway_legacy_path }}/config/config.yml"
+      register: legacy_gateway_config
+      become: true
+
+    - name: Check for current Pangolin config
+      ansible.builtin.stat:
+        path: "{{ gateway_deploy_path }}/config/config.yml"
+      register: current_gateway_config
+
+    - name: Preserve Pangolin config from /opt/gateway
+      ansible.builtin.copy:
+        src: "{{ gateway_legacy_path }}/config/config.yml"
+        dest: "{{ gateway_deploy_path }}/config/config.yml"
+        remote_src: true
+        owner: deploy
+        group: docker
+        mode: preserve
+      become: true
+      when:
+        - legacy_gateway_config.stat.exists
+        - not current_gateway_config.stat.exists
+
+    - name: Check for legacy certificate directory
+      ansible.builtin.stat:
+        path: "{{ gateway_legacy_path }}/config/letsencrypt"
+      register: legacy_letsencrypt
+      become: true
+
+    - name: Check for current certificate directory
+      ansible.builtin.stat:
+        path: "{{ gateway_deploy_path }}/config/letsencrypt"
+      register: current_letsencrypt
+
+    - name: Preserve certificates from /opt/gateway
+      ansible.builtin.copy:
+        src: "{{ gateway_legacy_path }}/config/letsencrypt"
+        dest: "{{ gateway_deploy_path }}/config/"
+        remote_src: true
+        owner: deploy
+        group: docker
+        mode: preserve
+      become: true
+      when:
+        - legacy_letsencrypt.stat.exists
+        - legacy_letsencrypt.stat.isdir | default(false)
+        - not current_letsencrypt.stat.exists
 
     - name: Render gateway .env
       ansible.builtin.copy:
@@ -51,6 +119,7 @@
       ansible.builtin.package:
         name: gettext-base
         state: present
+      become: true
 
     - name: Render Pangolin config from template
       ansible.builtin.shell:
