@@ -5,9 +5,9 @@
 # the host tagged "gateway_host" — override with --extra-vars or by
 # setting the variable in group_vars.
 #
-# Files land in the deploy user's home. rsync and compose run as that
-# user. Only directory setup, package install, and a one-time copy from
-# the old /opt/gateway path use privilege.
+# Files land in the deploy user's home. The deploy user owns that tree
+# and does not use sudo (see group_vars ansible_become: false).
+# setup-host.yml installs gettext-base; this play only checks for it.
 #
 # Required env vars: DOMAIN, PANGOLIN_SECRET, LETSENCRYPT_EMAIL
 
@@ -25,7 +25,6 @@
         owner: deploy
         group: docker
         mode: "0750"
-      become: true
 
     - name: Ensure deploy directory exists
       ansible.builtin.file:
@@ -34,7 +33,6 @@
         owner: deploy
         group: docker
         mode: "0750"
-      become: true
 
     - name: Sync gateway files to host
       ansible.builtin.command:
@@ -61,7 +59,7 @@
       ansible.builtin.stat:
         path: "{{ gateway_legacy_path }}/config/config.yml"
       register: legacy_gateway_config
-      become: true
+      failed_when: false
 
     - name: Check for current Pangolin config
       ansible.builtin.stat:
@@ -76,16 +74,15 @@
         owner: deploy
         group: docker
         mode: preserve
-      become: true
       when:
-        - legacy_gateway_config.stat.exists
-        - not current_gateway_config.stat.exists
+        - legacy_gateway_config.stat.exists | default(false)
+        - not current_gateway_config.stat.exists | default(false)
 
     - name: Check for legacy certificate directory
       ansible.builtin.stat:
         path: "{{ gateway_legacy_path }}/config/letsencrypt"
       register: legacy_letsencrypt
-      become: true
+      failed_when: false
 
     - name: Check for current certificate directory
       ansible.builtin.stat:
@@ -100,11 +97,10 @@
         owner: deploy
         group: docker
         mode: preserve
-      become: true
       when:
-        - legacy_letsencrypt.stat.exists
+        - legacy_letsencrypt.stat.exists | default(false)
         - legacy_letsencrypt.stat.isdir | default(false)
-        - not current_letsencrypt.stat.exists
+        - not current_letsencrypt.stat.exists | default(false)
 
     - name: Render gateway .env
       ansible.builtin.copy:
@@ -115,11 +111,18 @@
           PANGOLIN_SECRET={{ lookup('env', 'PANGOLIN_SECRET') }}
           LETSENCRYPT_EMAIL={{ lookup('env', 'LETSENCRYPT_EMAIL') }}
 
-    - name: Ensure envsubst is available
-      ansible.builtin.package:
-        name: gettext-base
-        state: present
-      become: true
+    - name: Check for envsubst
+      ansible.builtin.stat:
+        path: /usr/bin/envsubst
+      register: envsubst_bin
+
+    - name: Require envsubst
+      ansible.builtin.assert:
+        that:
+          - envsubst_bin.stat.exists
+        fail_msg: >-
+          envsubst is not installed. Run setup-host.yml to install
+          gettext-base before deploying the gateway.
 
     - name: Render Pangolin config from template
       ansible.builtin.shell:
