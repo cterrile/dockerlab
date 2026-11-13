@@ -1,6 +1,6 @@
 services:
   newt:
-    image: fosrl/newt:1.18.1
+    image: fosrl/newt:1.20.0
     container_name: newt-edge-client
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
