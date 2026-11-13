@@ -2,7 +2,7 @@ name: gateway
 
 services:
   pangolin:
-    image: fosrl/pangolin:1.18.4
+    image: fosrl/pangolin:1.20.0
     container_name: pangolin
     restart: unless-stopped
     environment:
@@ -76,7 +76,7 @@ services:
       - 443:443
 
   traefik:
-    image: traefik:v3.6
+    image: traefik:v3.7
     container_name: traefik
     restart: unless-stopped
     network_mode: service:gerbil
@@ -95,7 +95,7 @@ services:
       - --providers.http.pollinterval=5s
       - --providers.file.filename=/etc/traefik/dynamic_config.yml
       - --experimental.plugins.badger.modulename=github.com/fosrl/badger
-      - --experimental.plugins.badger.version=v1.4.0
+      - --experimental.plugins.badger.version=v1.4.1
       - --log.level=INFO
       - --log.format=common
       - --log.maxsize=100
