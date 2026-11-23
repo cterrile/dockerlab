@@ -1,0 +1,9 @@
+host: artemis
+deploy_path: /home/deploy/dockerlab/stacks/actual-bench
+env_file: true
+secrets:
+  - DOMAIN
+docker_volumes:
+  actual-bench-data:
+    backup: true
+depends_on_stacks: []
