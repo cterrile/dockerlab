@@ -440,7 +440,7 @@ No Ansible changes required. The playbook dynamically discovers stacks from the 
 | Secrets in repo | All secrets live in Infisical; `.env` files are `.gitignore`d and rendered at deploy time |
 | SSH key management | Deploy keys stored as GitHub Actions secrets; rotated periodically |
 | Runner exposure | Self-hosted runner on home network; not internet-accessible |
-| Consul encrypt key | Currently committed (`central-host/consul-server/server.json`); migrate to Infisical and rotate |
+| Consul encrypt key | Removed with the retired `central-host/` tree. It is no longer in the repo. |
 | Least privilege | Ansible uses a dedicated `deploy` user on VPS hosts, not root (become via sudo) |
 
 ---
