@@ -1,0 +1,30 @@
+services:
+  actual-bench:
+    image: docker.io/xrous/actual-bench:1.3.12
+    container_name: actual-bench
+    restart: unless-stopped
+    networks:
+      - pangolin
+    environment:
+      TZ: America/Los_Angeles
+    volumes:
+      # Bench metadata, backup history, sync state, and the credential vault.
+      # Not a copy of the Actual budget.
+      - actual-bench-data:/data
+    labels:
+      # Pangolin blueprint (public resource) — see https://docs.pangolin.net/manage/blueprints
+      - pangolin.public-resources.actual-bench.name=actual-bench
+      - pangolin.public-resources.actual-bench.full-domain=actual-bench.${DOMAIN}
+      - pangolin.public-resources.actual-bench.protocol=http
+      - pangolin.public-resources.actual-bench.targets[0].hostname=actual-bench
+      - pangolin.public-resources.actual-bench.targets[0].port=3000
+      - pangolin.public-resources.actual-bench.targets[0].path=/
+      - pangolin.public-resources.actual-bench.targets[0].method=http
+
+volumes:
+  actual-bench-data:
+    external: true
+
+networks:
+  pangolin:
+    external: true
