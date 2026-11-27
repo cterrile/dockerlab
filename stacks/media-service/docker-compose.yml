@@ -43,7 +43,7 @@ services:
       - pangolin.public-resources.tautulli.targets[0].method=http
 
   transmission:
-    image: linuxserver/transmission:4.0.5
+    image: linuxserver/transmission:4.1.4
     container_name: transmission
     restart: always
     networks:
