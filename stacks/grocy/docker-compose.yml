@@ -1,6 +1,6 @@
 services:
   grocy:
-    image: lscr.io/linuxserver/grocy:4.6.0
+    image: lscr.io/linuxserver/grocy:latest
     container_name: grocy
     restart: unless-stopped
     networks:
