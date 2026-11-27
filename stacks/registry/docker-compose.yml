@@ -1,6 +1,6 @@
 services:
   registry-init:
-    image: busybox:1.36
+    image: busybox:1.38
     container_name: registry-init
     restart: "no"
     # Materialize the htpasswd file from the REGISTRY_HTPASSWD secret onto a
